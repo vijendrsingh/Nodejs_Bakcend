@@ -93,7 +93,7 @@ app.post("/send-message", async (req, res) => {
 
 // Linear backedn integration
 
-app.get("/auth/linear", (req, res) => {
+app.get("https://nodejs-bakcend.onrender.com/auth/linear", (req, res) => {
   const authUrl = "https://linear.app/oauth/authorize";
   const params = querystring.stringify({
     client_id: process.env.LINEAR_CLIENT_ID,
