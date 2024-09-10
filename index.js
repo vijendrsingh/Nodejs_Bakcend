@@ -39,7 +39,7 @@ app.get("/slack/oauth_redirect", async (req, res) => {
     );
 
     const { access_token, authed_user, team } = response.data;
-
+    console.log(response, "response data coming after hit this api");
     if (!access_token) {
       return res.status(400).send("Failed to obtain access token");
     }
