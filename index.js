@@ -101,7 +101,8 @@ app.get("/auth/linear", (req, res) => {
     response_type: "code",
     scope: "read write",
   });
-
+  console.log(authUrl, "auth Url ");
+  console.log(params, "params");
   // Redirect the user to Linear's authorization page
   res.redirect(`${authUrl}?${params}`);
 });
@@ -109,7 +110,7 @@ app.get("/auth/linear", (req, res) => {
 // Step 2: Callback URL to capture authorization code
 app.get("/callback/auth/linear", async (req, res) => {
   const { code } = req.query;
-
+  console.log(code, "getting code ");
   if (!code) {
     return res.status(400).send("Authorization code missing.");
   }
