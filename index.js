@@ -65,21 +65,21 @@ app.get("/slack/oauth_redirect", async (req, res) => {
 app.post("/send-message", async (req, res) => {
   const { userId, message } = req.body;
 
-  const user = users[userId];
-  if (!user) {
-    return res.status(404).send("User not found");
-  }
+  // const user = users[userId];
+  // if (!user) {
+  //   return res.status(404).send("User not found");
+  // }
 
   try {
     await axios.post(
       "https://slack.com/api/chat.postMessage",
       {
-        channel: user.user_id,
+        channel: userId,
         text: message,
       },
       {
         headers: {
-          Authorization: `Bearer ${user.access_token}`,
+          Authorization: `Bearer ${access_token}`,
         },
       }
     );
