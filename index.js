@@ -9,6 +9,7 @@ const port = 3000;
 
 // In-memory store for users (Replace with a real database in production)
 const users = {};
+let access_token_one;
 
 // Middleware to parse JSON bodies (for handling POST requests)
 app.use(express.json());
@@ -41,6 +42,7 @@ app.get("/slack/oauth_redirect", async (req, res) => {
     );
 
     const { access_token, authed_user, team } = response.data;
+    access_token_one = response.data.access_oken;
     console.log(response, "response data coming after hit this api");
     if (!access_token) {
       return res.status(400).send("Failed to obtain access token");
@@ -79,7 +81,7 @@ app.post("/send-message", async (req, res) => {
       },
       {
         headers: {
-          Authorization: `Bearer ${access_token}`,
+          Authorization: `Bearer ${access_token_one}`,
         },
       }
     );
