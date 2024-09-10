@@ -1,6 +1,8 @@
 const express = require("express");
 const axios = require("axios");
+// const { connectionToDB } = require("./config/db");
 require("dotenv").config();
+const querystring = require("querystring");
 
 const app = express();
 const port = 3000;
@@ -89,7 +91,59 @@ app.post("/send-message", async (req, res) => {
   }
 });
 
+// Linear backedn integration
+
+app.get("/auth/linear", (req, res) => {
+  const authUrl = "https://linear.app/oauth/authorize";
+  const params = querystring.stringify({
+    client_id: process.env.LINEAR_CLIENT_ID,
+    redirect_uri: process.env.LINEAR_REDIRECT_URI,
+    response_type: "code",
+    scope: "read write",
+  });
+
+  // Redirect the user to Linear's authorization page
+  res.redirect(`${authUrl}?${params}`);
+});
+
+// Step 2: Callback URL to capture authorization code
+app.get("/callback/auth/linear", async (req, res) => {
+  const { code } = req.query;
+
+  if (!code) {
+    return res.status(400).send("Authorization code missing.");
+  }
+
+  try {
+    // Step 3: Exchange authorization code for access token
+    const tokenUrl = "https://api.linear.app/oauth/token";
+    const tokenData = {
+      grant_type: "authorization_code",
+      code: code,
+      redirect_uri: process.env.LINEAR_REDIRECT_URI,
+      client_id: process.env.LINEAR_CLIENT_ID,
+      client_secret: process.env.LINEAR_CLIENT_SECRET,
+    };
+
+    const tokenResponse = await axios.post(
+      tokenUrl,
+      querystring.stringify(tokenData),
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      }
+    );
+    console.log(tokenResponse, "respone from the url");
+    const accessToken = tokenResponse.data.access_token;
+
+    // Store or use the access token (you could save it in the session or database)
+    res.send(`Access token: ${accessToken}`);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Failed to get access token.");
+  }
+});
+
 // Start the Express server
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  console.log(`server is running on port 3000`);
 });
