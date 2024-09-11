@@ -184,7 +184,7 @@ app.get("/callback/auth/linear", async (req, res) => {
     // Fetch user info from Linear API
     const userInfoResponse = await axios.get("https://api.linear.app/me", {
       headers: {
-        Authorization: `Bearer ${linear_token_one}`,
+        Authorization: `Bearer ${tokenResponse.data.access_token}`,
       },
     });
 
