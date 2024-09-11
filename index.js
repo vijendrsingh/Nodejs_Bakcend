@@ -140,6 +140,40 @@ app.get("/callback/auth/linear", async (req, res) => {
     console.log(tokenResponse, "respone from the url");
     const accessToken = tokenResponse.data.access_token;
     console.log(accessToken, "access token coming ");
+
+    const userInfoResponse = await axios.get("https://api.linear.app/me", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    console.log(accessToken, "access token after the api ");
+
+    if (!userInfoResponse.data) {
+      throw new Error("User info is missing from the Linear API response");
+    }
+
+    const userInfo = userInfoResponse.data;
+    console.log(userInfo, "Received user info from Linear");
+
+    const { id: linearUserId, email, name, avatarUrl, team } = userInfo;
+
+    // Store user info and tokens in the database
+    const user = await User.findOneAndUpdate(
+      { linearUserId }, // Search by Linear user ID
+      {
+        linearUserId,
+        accessToken: accessToken,
+        refreshToken:  null,
+        tokenExpiresAt,
+        email,
+        name,
+        avatarUrl: avatarUrl || null,
+        organizationId: team ? team.id : null,
+        provider: "linear",
+      },
+      { upsert: true, new: true }
+    );
     // Store or use the access token (you could save it in the session or database)
     res.send(`Access token: ${accessToken}`);
   } catch (error) {
