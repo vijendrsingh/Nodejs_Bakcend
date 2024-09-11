@@ -158,76 +158,94 @@ app.get("/callback/auth/linear", async (req, res) => {
   }
 });
 
-// Assuming you have a User model
+app.get("/get-teams", async (req, res) => {
+  const { accessToken } = req.query;
 
-// app.get("/callback/auth/linear", async (req, res) => {
-//   const { code } = req.query;
+  if (!accessToken) {
+    return res.status(400).send("Access token is required.");
+  }
 
-//   if (!code) {
-//     return res.status(400).send("Authorization code missing.");
-//   }
+  try {
+    // Fetch teams from Linear API
+    const response = await axios.post(
+      "https://api.linear.app/graphql",
+      {
+        query: `
+          query {
+            teams {
+              nodes {
+                id
+                name
+              }
+            }
+          }
+        `,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-//   try {
-//     // Step 3: Exchange authorization code for access token
-//     const tokenUrl = "https://api.linear.app/oauth/token";
-//     const tokenData = {
-//       grant_type: "authorization_code",
-//       code: code,
-//       redirect_uri: process.env.LINEAR_REDIRECT_URI,
-//       client_id: process.env.LINEAR_CLIENT_ID,
-//       client_secret: process.env.LINEAR_CLIENT_SECRET,
-//     };
+    // Handle the response
+    const { data } = response;
+    console.log(data, "team id Data");
+    res.send(data.data.teams.nodes);
+  } catch (error) {
+    console.error("Error fetching teams:", error);
+    res.status(500).send("Failed to fetch teams.");
+  }
+});
 
-//     const tokenResponse = await axios.post(
-//       tokenUrl,
-//       querystring.stringify(tokenData),
-//       {
-//         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-//       }
-//     );
-//     console.log(tokenResponse, "token respone from the autheticated url ");
-//     const { access_token, refresh_token, expires_in } = tokenResponse.data;
-//     linear_token_one = tokenResponse.data.access_token;
-//     console.log(
-//       `${access_token} acces token ${refresh_token} refresh token ${expires_in} expiry for token`
-//     );
-//     // Fetch user info from Linear API
+app.post("/create-task", async (req, res) => {
+  const { accessToken, title, description, teamId } = req.body;
 
-//     const userInfoResponse = await axios.get("https://api.linear.app/me", {
-//       headers: {
-//         Authorization: `Bearer ${access_token}`,
-//       },
-//     });
+  if (!accessToken || !title) {
+    return res.status(400).send("Access token and title are required.");
+  }
 
-//     console.log(userInfoResponse, "user information linear");
+  try {
+    const response = await axios.post(
+      "https://api.linear.app/graphql",
+      {
+        query: `
+          mutation {
+            issueCreate(input: {
+              title: "${title}",
+              description: "${description || ""}",
+              teamId: "${teamId || ""}"
+            }) {
+              success
+              issue {
+                id
+                title
+                description
+              }
+            }
+          }
+        `,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-//     const userInfo = userInfoResponse.data;
-//     console.log(userInfo, "coming from the lienar user info");
-//     const { id: linearUserId, email, name, avatarUrl, team } = userInfo;
+    const { data } = response;
+    if (data.errors) {
+      throw new Error(data.errors[0].message);
+    }
 
-//     // Store user info and tokens in the database
-//     const user = await User.findOneAndUpdate(
-//       { linearUserId }, // Search by Linear user ID
-//       {
-//         linearUserId,
-//         accessToken: access_token,
-//         refreshToken: null,
-//         tokenExpiresAt,
-//         email,
-//         name,
-//         avatarUrl: avatarUrl || null,
-//         organizationId: team ? team.id : null,
-//         provider: "linear",
-//       },
-//       { upsert: true, new: true }
-//     );
-
-//     res.send(`User info stored for ${user.name}`);
-//   } catch (error) {
-//     console.error("Error during OAuth callback:", error);
-//     res.status(500).send("Failed to authenticate user.");
-//   }
-// });
+    res.send(data.data.issueCreate.issue);
+  } catch (error) {
+    console.error("Error creating task:", error);
+    res.status(500).send("Failed to create task.");
+  }
+});
 
 // Start the Express server
 app.listen(port, async () => {
