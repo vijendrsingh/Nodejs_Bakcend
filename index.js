@@ -112,47 +112,9 @@ app.get("/auth/linear", (req, res) => {
 });
 
 // Step 2: Callback URL to capture authorization code
-// app.get("/callback/auth/linear", async (req, res) => {
-//   const { code } = req.query;
-//   console.log(code, "getting code ");
-//   if (!code) {
-//     return res.status(400).send("Authorization code missing.");
-//   }
-
-//   try {
-//     // Step 3: Exchange authorization code for access token
-//     const tokenUrl = "https://api.linear.app/oauth/token";
-//     const tokenData = {
-//       grant_type: "authorization_code",
-//       code: code,
-//       redirect_uri: process.env.LINEAR_REDIRECT_URI,
-//       client_id: process.env.LINEAR_CLIENT_ID,
-//       client_secret: process.env.LINEAR_CLIENT_SECRET,
-//     };
-
-//     const tokenResponse = await axios.post(
-//       tokenUrl,
-//       querystring.stringify(tokenData),
-//       {
-//         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-//       }
-//     );
-//     console.log(tokenResponse, "respone from the url");
-//     const accessToken = tokenResponse.data.access_token;
-
-//     // Store or use the access token (you could save it in the session or database)
-//     res.send(`Access token: ${accessToken}`);
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).send("Failed to get access token.");
-//   }
-// });
-
-// Assuming you have a User model
-
 app.get("/callback/auth/linear", async (req, res) => {
   const { code } = req.query;
-
+  console.log(code, "getting code ");
   if (!code) {
     return res.status(400).send("Authorization code missing.");
   }
@@ -175,48 +137,87 @@ app.get("/callback/auth/linear", async (req, res) => {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
       }
     );
-    console.log(tokenResponse, "token respone from the autheticated url ");
-    const { access_token, refresh_token, expires_in } = tokenResponse.data;
-    linear_token_one = tokenResponse.data.access_token;
-    console.log(
-      `${access_token} acces token ${refresh_token} refresh token ${expires_in} expiry for token`
-    );
-    // Fetch user info from Linear API
-    const userInfoResponse = await axios.get("https://api.linear.app/me", {
-      headers: {
-        Authorization: `Bearer ${tokenResponse.data.access_token}`,
-      },
-    });
-
-    console.log(userInfoResponse, "user information linear");
-
-    const userInfo = userInfoResponse.data;
-    console.log(userInfo, "coming from the lienar user info");
-    const { id: linearUserId, email, name, avatarUrl, team } = userInfo;
-
-    // Store user info and tokens in the database
-    const user = await User.findOneAndUpdate(
-      { linearUserId }, // Search by Linear user ID
-      {
-        linearUserId,
-        accessToken: access_token,
-        refreshToken: null,
-        tokenExpiresAt,
-        email,
-        name,
-        avatarUrl: avatarUrl || null,
-        organizationId: team ? team.id : null,
-        provider: "linear",
-      },
-      { upsert: true, new: true }
-    );
-
-    res.send(`User info stored for ${user.name}`);
+    console.log(tokenResponse, "respone from the url");
+    const accessToken = tokenResponse.data.access_token;
+    console.log(accessToken, "access token coming ");
+    // Store or use the access token (you could save it in the session or database)
+    res.send(`Access token: ${accessToken}`);
   } catch (error) {
-    console.error("Error during OAuth callback:", error);
-    res.status(500).send("Failed to authenticate user.");
+    console.error(error);
+    res.status(500).send("Failed to get access token.");
   }
 });
+
+// Assuming you have a User model
+
+// app.get("/callback/auth/linear", async (req, res) => {
+//   const { code } = req.query;
+
+//   if (!code) {
+//     return res.status(400).send("Authorization code missing.");
+//   }
+
+//   try {
+//     // Step 3: Exchange authorization code for access token
+//     const tokenUrl = "https://api.linear.app/oauth/token";
+//     const tokenData = {
+//       grant_type: "authorization_code",
+//       code: code,
+//       redirect_uri: process.env.LINEAR_REDIRECT_URI,
+//       client_id: process.env.LINEAR_CLIENT_ID,
+//       client_secret: process.env.LINEAR_CLIENT_SECRET,
+//     };
+
+//     const tokenResponse = await axios.post(
+//       tokenUrl,
+//       querystring.stringify(tokenData),
+//       {
+//         headers: { "Content-Type": "application/x-www-form-urlencoded" },
+//       }
+//     );
+//     console.log(tokenResponse, "token respone from the autheticated url ");
+//     const { access_token, refresh_token, expires_in } = tokenResponse.data;
+//     linear_token_one = tokenResponse.data.access_token;
+//     console.log(
+//       `${access_token} acces token ${refresh_token} refresh token ${expires_in} expiry for token`
+//     );
+//     // Fetch user info from Linear API
+
+//     const userInfoResponse = await axios.get("https://api.linear.app/me", {
+//       headers: {
+//         Authorization: `Bearer ${access_token}`,
+//       },
+//     });
+
+//     console.log(userInfoResponse, "user information linear");
+
+//     const userInfo = userInfoResponse.data;
+//     console.log(userInfo, "coming from the lienar user info");
+//     const { id: linearUserId, email, name, avatarUrl, team } = userInfo;
+
+//     // Store user info and tokens in the database
+//     const user = await User.findOneAndUpdate(
+//       { linearUserId }, // Search by Linear user ID
+//       {
+//         linearUserId,
+//         accessToken: access_token,
+//         refreshToken: null,
+//         tokenExpiresAt,
+//         email,
+//         name,
+//         avatarUrl: avatarUrl || null,
+//         organizationId: team ? team.id : null,
+//         provider: "linear",
+//       },
+//       { upsert: true, new: true }
+//     );
+
+//     res.send(`User info stored for ${user.name}`);
+//   } catch (error) {
+//     console.error("Error during OAuth callback:", error);
+//     res.status(500).send("Failed to authenticate user.");
+//   }
+// });
 
 // Start the Express server
 app.listen(port, async () => {
