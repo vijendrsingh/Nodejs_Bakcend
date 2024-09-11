@@ -94,13 +94,31 @@ app.get("/slack/oauth_redirect", async (req, res) => {
       return res.status(400).send("Failed to obtain access token");
     }
 
+    const userInfoResponse = await axios.get(
+      `https://slack.com/api/users.info?user=${authed_user.id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      }
+    );
+
+    const { user } = userInfoResponse.data;
+
+    if (!user || !user.profile.email) {
+      return res.status(400).send("Failed to fetch user email");
+    }
+
+    const userEmail = user.profile.email;
+
     // Store the details in MongoDB
     const slackUser = new SlackUser({
       access_token,
       authed_user_id: authed_user.id,
       team_id: team.id,
-      channel_id: channel,  // Slack channel where the app is installed
-      webhook_url          // Webhook URL to send notifications
+      channel_id: channel, // Slack channel where the app is installed
+      webhook_url, // Webhook URL to send notifications
+      email: userEmail,
     });
 
     await slackUser.save();
@@ -145,25 +163,24 @@ app.post("/send-message", async (req, res) => {
   }
 });
 
-app.post('/notify-task', async (req, res) => {
+app.post("/notify-task", async (req, res) => {
   const { title, description, webhookUrl } = req.body;
 
   if (!title || !webhookUrl) {
-    return res.status(400).send('Task title and webhook URL are required.');
+    return res.status(400).send("Task title and webhook URL are required.");
   }
 
   try {
-    await axios.post(
-      webhookUrl,
-      {
-        text: `A new task has been created: *${title}* \nDescription: ${description || "No description"}`
-      }
-    );
+    await axios.post(webhookUrl, {
+      text: `A new task has been created: *${title}* \nDescription: ${
+        description || "No description"
+      }`,
+    });
 
-    res.send('Notification sent to Slack successfully.');
+    res.send("Notification sent to Slack successfully.");
   } catch (error) {
-    console.error('Error sending message to Slack:', error);
-    res.status(500).send('Failed to send message to Slack.');
+    console.error("Error sending message to Slack:", error);
+    res.status(500).send("Failed to send message to Slack.");
   }
 });
 

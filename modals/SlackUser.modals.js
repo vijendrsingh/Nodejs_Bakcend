@@ -9,8 +9,9 @@ const SlackUserSchema = new Schema({
   team_id: { type: String, required: true },
   channel_id: { type: String, required: true },
   webhook_url: { type: String, required: true },
+  email: { type: String },
 });
 
 const SlackUser = mongoose.model("SlackUser", SlackUserSchema);
 
-module.exports = {SlackUser}
+module.exports = { SlackUser };
