@@ -95,9 +95,13 @@ app.get("/slack/oauth_redirect", async (req, res) => {
       return res.status(400).send("Failed to obtain access token");
     }
 
+    // Fetch user info using the access token
     const userInfoResponse = await axios.get(
-      `https://slack.com/api/users.info?user=${authed_user.id}`,
+      `https://slack.com/api/users.info`, // Correct API endpoint
       {
+        params: {
+          user: authed_user.id, // Correct parameter handling
+        },
         headers: {
           Authorization: `Bearer ${access_token}`,
         },
@@ -105,9 +109,11 @@ app.get("/slack/oauth_redirect", async (req, res) => {
     );
 
     const { user } = userInfoResponse.data;
-    console.log(userInfoResponse.data, "user info details");
+
+   
 
     const userEmail = user.profile.email;
+    console.log(userInfoResponse.data, "user info details");
 
     // Store the details in MongoDB
     const slackUser = new SlackUser({
@@ -126,10 +132,11 @@ app.get("/slack/oauth_redirect", async (req, res) => {
     // Send a success response
     res.send("Authorization successful! You can now close this window.");
   } catch (error) {
-    console.error("Error exchanging code for access token:", error);
+    console.error("Error during the OAuth process or fetching user info:", error);
     res.status(500).send("An error occurred during the authorization process");
   }
 });
+
 
 // Route to send a message to a Slack user
 app.post("/send-message", async (req, res) => {
