@@ -148,63 +148,63 @@ app.get("/callback/auth/linear", async (req, res) => {
 
     console.log(accessToken, "access token coming ");
 
-    // Fetch user info from Linear API
-    const userInfoResponse = await axios.post(
-      "https://api.linear.app/graphql",
-      {
-        query: `
-          query {
-            viewer {
-              id
-              name
-              email
-              avatarUrl
-              teams {
-                id
-                name
-              }
-            }
-          }
-        `,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    // // Fetch user info from Linear API
+    // const userInfoResponse = await axios.post(
+    //   "https://api.linear.app/graphql",
+    //   {
+    //     query: `
+    //       query {
+    //         viewer {
+    //           id
+    //           name
+    //           email
+    //           avatarUrl
+    //           teams {
+    //             id
+    //             name
+    //           }
+    //         }
+    //       }
+    //     `,
+    //   },
+    //   {
+    //     headers: {
+    //       Authorization: `Bearer ${accessToken}`,
+    //       "Content-Type": "application/json",
+    //     },
+    //   }
+    // );
 
-    console.log(userInfoResponse.data, "Received user info from Linear");
+    // console.log(userInfoResponse.data, "Received user info from Linear");
 
-    const userInfo = userInfoResponse.data.data.viewer;
-    if (!userInfo) {
-      throw new Error("User info is missing from the Linear API response");
-    }
+    // const userInfo = userInfoResponse.data.data.viewer;
+    // if (!userInfo) {
+    //   throw new Error("User info is missing from the Linear API response");
+    // }
 
-    const { id: linearUserId, email, name, avatarUrl, teams } = userInfo;
+    // const { id: linearUserId, email, name, avatarUrl, teams } = userInfo;
 
-    // Calculate token expiration date
-    const tokenExpiresAt = new Date(Date.now() + expiresIn * 1000);
+    // // Calculate token expiration date
+    // const tokenExpiresAt = new Date(Date.now() + expiresIn * 1000);
 
-    // Store user info and tokens in the database
-    const user = await User.findOneAndUpdate(
-      { linearUserId }, // Search by Linear user ID
-      {
-        linearUserId,
-        accessToken,
-        refreshToken,
-        tokenExpiresAt,
-        email,
-        name,
-        avatarUrl: avatarUrl || null,
-        organizationId: teams.length > 0 ? teams[0].id : null, // Assuming the first team is the main team
-        provider: "linear",
-      },
-      { upsert: true, new: true }
-    );
-    console.log(user, "user info in the data base");
-    res.send(`User info stored for ${user.name}`);
+    // // Store user info and tokens in the database
+    // const user = await User.findOneAndUpdate(
+    //   { linearUserId }, // Search by Linear user ID
+    //   {
+    //     linearUserId,
+    //     accessToken,
+    //     refreshToken,
+    //     tokenExpiresAt,
+    //     email,
+    //     name,
+    //     avatarUrl: avatarUrl || null,
+    //     organizationId: teams.length > 0 ? teams[0].id : null, // Assuming the first team is the main team
+    //     provider: "linear",
+    //   },
+    //   { upsert: true, new: true }
+    // );
+    // console.log(user, "user info in the data base");
+    res.send(`User info stored for ${accessToken}`);
   } catch (error) {
     console.error("Error during OAuth callback:", error);
     res.status(500).send("Failed to authenticate user.");
