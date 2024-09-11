@@ -95,6 +95,28 @@ app.post("/send-message", async (req, res) => {
   }
 });
 
+app.post('/notify-task', async (req, res) => {
+  const { title, description, webhookUrl } = req.body;
+
+  if (!title || !webhookUrl) {
+    return res.status(400).send('Task title and webhook URL are required.');
+  }
+
+  try {
+    await axios.post(
+      webhookUrl,
+      {
+        text: `A new task has been created: *${title}* \nDescription: ${description || "No description"}`
+      }
+    );
+
+    res.send('Notification sent to Slack successfully.');
+  } catch (error) {
+    console.error('Error sending message to Slack:', error);
+    res.status(500).send('Failed to send message to Slack.');
+  }
+});
+
 // Linear backedn integration
 
 app.get("/auth/linear", (req, res) => {
