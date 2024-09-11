@@ -104,10 +104,7 @@ app.get("/slack/oauth_redirect", async (req, res) => {
     );
 
     const { user } = userInfoResponse.data;
-
-    if (!user || !user.profile.email) {
-      return res.status(400).send("Failed to fetch user email");
-    }
+    console.log(userInfoResponse.data, "user info details");
 
     const userEmail = user.profile.email;
 
