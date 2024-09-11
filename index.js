@@ -4,6 +4,7 @@ const { connectionToDB } = require("./config/db");
 require("dotenv").config();
 const querystring = require("querystring");
 const { User } = require("./modals/UserInfo.modals");
+const { SlackUser } = require("./modals/SlackUser.modals");
 
 const app = express();
 const port = 3000;
@@ -21,6 +22,49 @@ app.get("/", async (req, res) => {
 });
 
 // Route to handle Slack OAuth redirect
+// app.get("/slack/oauth_redirect", async (req, res) => {
+//   const { code } = req.query;
+
+//   if (!code) {
+//     return res.status(400).send("Authorization code is missing");
+//   }
+//   console.log(code, "code I have here!!!");
+//   try {
+//     // Exchange the authorization code for an access token
+//     const response = await axios.post(
+//       "https://slack.com/api/oauth.v2.access",
+//       null,
+//       {
+//         params: {
+//           client_id: process.env.SLACK_CLIENT_ID,
+//           client_secret: process.env.SLACK_CLIENT_SECRET,
+//           code: code,
+//           redirect_uri: process.env.SLACK_REDIRECT_URI,
+//         },
+//       }
+//     );
+
+//     const { access_token, authed_user, team } = response.data;
+//     access_token_one = response.data.access_oken;
+//     console.log(response, "response data coming after hit this api");
+//     if (!access_token) {
+//       return res.status(400).send("Failed to obtain access token");
+//     }
+
+//     // Store user information in memory (replace with a database in production)
+//     users[authed_user.id] = {
+//       access_token,
+//       team_id: team.id,
+//       user_id: authed_user.id,
+//     };
+
+//     // Send a success response
+//     res.send("Authorization successful! You can now close this window.");
+//   } catch (error) {
+//     console.error("Error exchanging code for access token:", error);
+//     res.status(500).send("An error occurred during the authorization process");
+//   }
+// });
 app.get("/slack/oauth_redirect", async (req, res) => {
   const { code } = req.query;
 
@@ -43,19 +87,25 @@ app.get("/slack/oauth_redirect", async (req, res) => {
       }
     );
 
-    const { access_token, authed_user, team } = response.data;
-    access_token_one = response.data.access_oken;
-    console.log(response, "response data coming after hit this api");
+    const { access_token, authed_user, team, incoming_webhook } = response.data;
+    const { channel, url: webhook_url } = incoming_webhook;
+
     if (!access_token) {
       return res.status(400).send("Failed to obtain access token");
     }
 
-    // Store user information in memory (replace with a database in production)
-    users[authed_user.id] = {
+    // Store the details in MongoDB
+    const slackUser = new SlackUser({
       access_token,
+      authed_user_id: authed_user.id,
       team_id: team.id,
-      user_id: authed_user.id,
-    };
+      channel_id: channel,  // Slack channel where the app is installed
+      webhook_url          // Webhook URL to send notifications
+    });
+
+    await slackUser.save();
+
+    console.log("User data stored in MongoDB:", slackUser);
 
     // Send a success response
     res.send("Authorization successful! You can now close this window.");
