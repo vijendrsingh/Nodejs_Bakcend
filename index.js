@@ -115,6 +115,7 @@ app.get("/auth/linear", (req, res) => {
 app.get("/callback/auth/linear", async (req, res) => {
   const { code } = req.query;
   console.log(code, "getting code ");
+
   if (!code) {
     return res.status(400).send("Authorization code missing.");
   }
@@ -137,48 +138,76 @@ app.get("/callback/auth/linear", async (req, res) => {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
       }
     );
-    console.log(tokenResponse, "respone from the url");
-    const accessToken = tokenResponse.data.access_token;
+
+    console.log(tokenResponse.data, "response from the token URL");
+    const {
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      expires_in: expiresIn,
+    } = tokenResponse.data;
+
     console.log(accessToken, "access token coming ");
 
-    const userInfoResponse = await axios.get("https://api.linear.app/me", {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
+    // Fetch user info from Linear API
+    const userInfoResponse = await axios.post(
+      "https://api.linear.app/graphql",
+      {
+        query: `
+          query {
+            viewer {
+              id
+              name
+              email
+              avatarUrl
+              teams {
+                id
+                name
+              }
+            }
+          }
+        `,
       },
-    });
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-    console.log(accessToken, "access token after the api ");
+    console.log(userInfoResponse.data, "Received user info from Linear");
 
-    if (!userInfoResponse.data) {
+    const userInfo = userInfoResponse.data.data.viewer;
+    if (!userInfo) {
       throw new Error("User info is missing from the Linear API response");
     }
 
-    const userInfo = userInfoResponse.data;
-    console.log(userInfo, "Received user info from Linear");
+    const { id: linearUserId, email, name, avatarUrl, teams } = userInfo;
 
-    const { id: linearUserId, email, name, avatarUrl, team } = userInfo;
+    // Calculate token expiration date
+    const tokenExpiresAt = new Date(Date.now() + expiresIn * 1000);
 
     // Store user info and tokens in the database
     const user = await User.findOneAndUpdate(
       { linearUserId }, // Search by Linear user ID
       {
         linearUserId,
-        accessToken: accessToken,
-        refreshToken:  null,
+        accessToken,
+        refreshToken,
         tokenExpiresAt,
         email,
         name,
         avatarUrl: avatarUrl || null,
-        organizationId: team ? team.id : null,
+        organizationId: teams.length > 0 ? teams[0].id : null, // Assuming the first team is the main team
         provider: "linear",
       },
       { upsert: true, new: true }
     );
-    // Store or use the access token (you could save it in the session or database)
-    res.send(`Access token: ${accessToken}`);
+    console.log(user, "user info in the data base");
+    res.send(`User info stored for ${user.name}`);
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Failed to get access token.");
+    console.error("Error during OAuth callback:", error);
+    res.status(500).send("Failed to authenticate user.");
   }
 });
 
