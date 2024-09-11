@@ -72,7 +72,7 @@ app.get("/slack/oauth_redirect", async (req, res) => {
   if (!code) {
     return res.status(400).send("Authorization code is missing");
   }
-  console.log(code, "code I have here!!!");
+  console.log(code, "I am getting the code here !!!!!");
   try {
     // Exchange the authorization code for an access token
     const response = await axios.post(
@@ -95,13 +95,10 @@ app.get("/slack/oauth_redirect", async (req, res) => {
       return res.status(400).send("Failed to obtain access token");
     }
 
-    // Fetch user info using the access token
+    // Fetch user info to get the email
     const userInfoResponse = await axios.get(
-      `https://slack.com/api/users.info`, // Correct API endpoint
+      `https://slack.com/api/users.info?user=${authed_user.id}`,
       {
-        params: {
-          user: authed_user.id, // Correct parameter handling
-        },
         headers: {
           Authorization: `Bearer ${access_token}`,
         },
@@ -109,34 +106,26 @@ app.get("/slack/oauth_redirect", async (req, res) => {
     );
 
     const { user } = userInfoResponse.data;
-
-   
-
     const userEmail = user.profile.email;
-    console.log(userInfoResponse.data, "user info details");
-
+    console.log(userEmail, "user emails ");
     // Store the details in MongoDB
     const slackUser = new SlackUser({
       access_token,
       authed_user_id: authed_user.id,
       team_id: team.id,
-      channel_id: channel, // Slack channel where the app is installed
-      webhook_url, // Webhook URL to send notifications
+      channel_id: channel,
+      webhook_url,
       email: userEmail,
     });
 
     await slackUser.save();
 
-    console.log("User data stored in MongoDB:", slackUser);
-
-    // Send a success response
     res.send("Authorization successful! You can now close this window.");
   } catch (error) {
-    console.error("Error during the OAuth process or fetching user info:", error);
+    console.error("Error exchanging code for access token:", error);
     res.status(500).send("An error occurred during the authorization process");
   }
 });
-
 
 // Route to send a message to a Slack user
 app.post("/send-message", async (req, res) => {
@@ -189,7 +178,6 @@ app.post("/notify-task", async (req, res) => {
   }
 });
 
-
 app.post("/task/details/creation", async (req, res) => {
   const { email, title, description, access_token } = req.body;
 
@@ -204,7 +192,7 @@ app.post("/task/details/creation", async (req, res) => {
       title,
       description,
       email: email,
-      accessTokenGet:access_token
+      accessTokenGet: access_token,
     });
 
     await newTask.save();
