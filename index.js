@@ -5,6 +5,7 @@ require("dotenv").config();
 const querystring = require("querystring");
 const { User } = require("./modals/UserInfo.modals");
 const { SlackUser } = require("./modals/SlackUser.modals");
+const TaskDetails = require("./modals/TasksDetails.modals");
 
 const app = express();
 const port = 3000;
@@ -178,6 +179,39 @@ app.post("/notify-task", async (req, res) => {
   } catch (error) {
     console.error("Error sending message to Slack:", error);
     res.status(500).send("Failed to send message to Slack.");
+  }
+});
+
+
+app.post("/task/details/creation", async (req, res) => {
+  const { email, title, description, access_token } = req.body;
+
+  // Validate that all required fields are provided
+  if (!email || !title || !description || !access_token) {
+    return res.status(400).json({ message: "All fields are required" });
+  }
+
+  try {
+    // Store the task in the database
+    const newTask = new TaskDetails({
+      title,
+      description,
+      email: email,
+      accessTokenGet:access_token
+    });
+
+    await newTask.save();
+
+    // Here, you can make use of the access token (for example, Slack API interaction)
+    // For now, let's just return the created task and a success message
+
+    res.status(201).json({
+      message: "Task created successfully",
+      task: newTask,
+    });
+  } catch (error) {
+    console.error("Error creating task:", error);
+    res.status(500).json({ message: "Failed to create task" });
   }
 });
 
