@@ -11,6 +11,7 @@ const port = 3000;
 // In-memory store for users (Replace with a real database in production)
 const users = {};
 let access_token_one;
+let linear_token_one;
 
 // Middleware to parse JSON bodies (for handling POST requests)
 app.use(express.json());
@@ -176,13 +177,14 @@ app.get("/callback/auth/linear", async (req, res) => {
     );
     console.log(tokenResponse, "token respone from the autheticated url ");
     const { access_token, refresh_token, expires_in } = tokenResponse.data;
+    linear_token_one = tokenResponse.data.access_token;
     console.log(
       `${access_token} acces token ${refresh_token} refresh token ${expires_in} expiry for token`
     );
     // Fetch user info from Linear API
     const userInfoResponse = await axios.get("https://api.linear.app/me", {
       headers: {
-        Authorization: `Bearer ${access_token}`,
+        Authorization: `Bearer ${linear_token_one}`,
       },
     });
 
