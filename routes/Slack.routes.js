@@ -67,7 +67,7 @@ slackRouter.get("/slack/oauth_redirect", async (req, res) => {
 });
 
 slackRouter.post("/task/details/creation", async (req, res) => {
-    const { email, title, description, access_token } = req.body;
+    const { email, title, description } = req.body;
   
     try {
       // Store the task in the database
