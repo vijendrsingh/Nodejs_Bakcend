@@ -3,6 +3,7 @@ const axios = require("axios");
 const { SlackUser } = require("../modals/SlackUser.modals");
 const slackRouter = express.Router();
 const dotenv = require("dotenv");
+const TaskDetails = require("../modals/TasksDetails.modals");
 dotenv.config();
 slackRouter.get("/slack/oauth_redirect", async (req, res) => {
   const { code } = req.query;
@@ -65,86 +66,42 @@ slackRouter.get("/slack/oauth_redirect", async (req, res) => {
   }
 });
 
-// Route to send a message to a Slack user
-slackRouter.post("/send-message", async (req, res) => {
-  const { userId, message } = req.body;
-
-  // const user = users[userId];
-  // if (!user) {
-  //   return res.status(404).send("User not found");
-  // }
-
-  try {
-    await axios.post(
-      "https://slack.com/api/chat.postMessage",
-      {
-        channel: userId,
-        text: message,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${access_token_one}`,
-        },
-      }
-    );
-
-    res.send("Message sent successfully");
-  } catch (error) {
-    console.error("Error sending message:", error);
-    res.status(500).send("Failed to send message");
-  }
-});
-
-slackRouter.post("/notify-task", async (req, res) => {
-  const { title, description, webhookUrl } = req.body;
-
-  if (!title || !webhookUrl) {
-    return res.status(400).send("Task title and webhook URL are required.");
-  }
-
-  try {
-    await axios.post(webhookUrl, {
-      text: `A new task has been created: *${title}* \nDescription: ${
-        description || "No description"
-      }`,
-    });
-
-    res.send("Notification sent to Slack successfully.");
-  } catch (error) {
-    console.error("Error sending message to Slack:", error);
-    res.status(500).send("Failed to send message to Slack.");
-  }
-});
-
 slackRouter.post("/task/details/creation", async (req, res) => {
   const { email, title, description, access_token } = req.body;
 
-  // Validate that all required fields are provided
-  if (!email || !title || !description || !access_token) {
-    return res.status(400).json({ message: "All fields are required" });
-  }
-
   try {
+    // Find the user by email to get the stored webhook URL
     // Store the task in the database
     const newTask = new TaskDetails({
       title,
       description,
-      email: email,
-      accessTokenGet: access_token,
+      email,
+      access_token,
     });
 
     await newTask.save();
 
-    // Here, you can make use of the access token (for example, Slack API interaction)
-    // For now, let's just return the created task and a success message
+    const slackUser = await SlackUser.findOne({ email });
+    // Send Slack notification using the retrieved webhookUrl
+    console.log(slackUser, "slack user info");
+    const webhookUrl = slackUser.webhook_url;
+    console.log(webhookUrl, "webhook url ");
+    await axios.post(webhookUrl, {
+      text: `A new task has been created by Vijendra Chouhan : *${title}* \nDescription: ${
+        description || "No description"
+      }`,
+    });
 
+    // Return success message after both task creation and Slack notification
     res.status(201).json({
-      message: "Task created successfully",
+      message: "Task created successfully, and notification sent to Slack",
       task: newTask,
     });
   } catch (error) {
-    console.error("Error creating task:", error);
-    res.status(500).json({ message: "Failed to create task" });
+    console.error("Error creating task or sending Slack notification:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to create task or send notification to Slack" });
   }
 });
 

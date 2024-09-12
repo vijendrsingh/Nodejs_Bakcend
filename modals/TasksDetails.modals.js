@@ -3,8 +3,8 @@ const mongoose = require("mongoose");
 const TaskSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String },
-  userEmail: { type: String, required: true },
-  accessTokenGet: { type: Date, required: true },
+  email: { type: String, required: true },
+  access_token: { type: Date, required: true },
 });
 
 const TaskDetails = mongoose.model("TaskDetails", TaskSchema);
