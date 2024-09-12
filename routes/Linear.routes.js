@@ -5,6 +5,7 @@ const { LinearUser } = require("../modals/LinearUser.modals");
 const linearRoutes = express.Router();
 const dotenv = require("dotenv");
 dotenv.config();
+import { LinearClient } from "@linear/sdk";
 
 linearRoutes.get("/auth/linear", (req, res) => {
   const authUrl = "https://linear.app/oauth/authorize";
@@ -51,29 +52,10 @@ linearRoutes.get("/callback/auth/linear", async (req, res) => {
     const { access_token, refresh_token, expires_in } = tokenResponse.data;
     console.log(tokenResponse.data, "response after authenticating the user");
 
-    // Step 4: Fetch user details from Linear API (GraphQL)
-    const userResponse = await axios.get("https://api.linear.app/me", {
-      headers: { Authorization: `Bearer ${access_token}` },
+    const client = new LinearClient({
+      accessToken: access_token,
     });
-    console.log(userResponse, "for linear user getting");
-    const linearUser = userResponse.data;
-    console.log(linearUser, "linear user ");
-    // Save user in database
-    let user = await LinearUser.findOne({ linearUserId: linearUser.id });
-    if (!user) {
-      user = new LinearUser({
-        linearUserId: linearUser.id,
-        accessToken: access_token,
-        refreshToken: refresh_token,
-        name: linearUser.name,
-        email: linearUser.email,
-      });
-    } else {
-      user.accessToken = access_token;
-      user.refreshToken = refresh_token;
-    }
-    await user.save();
-
+    console.log(client, "client info which is now autheticate ");
     res.send(`User info stored for ${email}`);
   } catch (error) {
     console.error("Error during OAuth callback:", error);
