@@ -67,100 +67,175 @@ linearRoutes.get("/callback/auth/linear", async (req, res) => {
 
     await linearUser.save();
     console.log(linearUser, "users");
-    res.send(`User info stored for ${linearUser}`);
+    res.send(`Your are authenticated now you can close this window!`);
   } catch (error) {
     console.error("Error during OAuth callback:", error);
     res.status(500).send("Failed to authenticate user.");
   }
 });
 
-linearRoutes.get("/get-teams", async (req, res) => {
-  const { accessToken } = req.query;
+linearRoutes.post("/create/task/linear", async (req, res) => {
+  const { title, description, email } = req.body;
 
-  if (!accessToken) {
-    return res.status(400).send("Access token is required.");
+  // Validate the required fields
+  if (!title || !email) {
+    return res.status(400).send("Title and email are required.");
   }
 
   try {
-    // Fetch teams from Linear API
+    // Find the user in the Linear database using the email
+    const linearUser = await LinearUser.findOne({ email });
+    if (!linearUser) {
+      return res.status(404).send("User not found in Linear database.");
+    }
+
+    const { access_token } = linearUser;
+
+    // Create a new Linear client for this user
+    const client = new LinearClient({
+      accessToken: access_token,
+    });
+
+    // Get the user's teamId (assuming they have access to a team)
+    const teams = await client.teams();
+    // if (!teams || teams.nodes.length === 0) {
+    //   return res.status(400).send("User has no team available.");
+    // }
+    console.log(teams,"users teams info")
+    const teamId = teams.nodes[0].id; // You can select the first team or modify this logic
+    console.log(teamId,"team id ")
+    // Create a new task for the user
     const response = await axios.post(
       "https://api.linear.app/graphql",
       {
         query: `
-            query {
-              teams {
-                nodes {
-                  id
-                  name
-                }
+          mutation {
+            issueCreate(input: {
+              title: "${title}",
+              description: "${description || ""}",
+              teamId: "${teamId}"
+            }) {
+              success
+              issue {
+                id
+                title
+                description
               }
             }
-          `,
+          }
+        `,
       },
       {
         headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    // Handle the response
-    const { data } = response;
-    console.log(data, "team id Data");
-    res.send(data.data.teams.nodes);
-  } catch (error) {
-    console.error("Error fetching teams:", error);
-    res.status(500).send("Failed to fetch teams.");
-  }
-});
-
-linearRoutes.post("/create-task", async (req, res) => {
-  const { accessToken, title, description, teamId } = req.body;
-
-  if (!accessToken || !title) {
-    return res.status(400).send("Access token and title are required.");
-  }
-
-  try {
-    const response = await axios.post(
-      "https://api.linear.app/graphql",
-      {
-        query: `
-            mutation {
-              issueCreate(input: {
-                title: "${title}",
-                description: "${description || ""}",
-                teamId: "${teamId || ""}"
-              }) {
-                success
-                issue {
-                  id
-                  title
-                  description
-                }
-              }
-            }
-          `,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${access_token}`,
           "Content-Type": "application/json",
         },
       }
     );
 
     const { data } = response;
+    console.log(data,"taks creation info")
     if (data.errors) {
       throw new Error(data.errors[0].message);
     }
 
     res.send(data.data.issueCreate.issue);
   } catch (error) {
-    console.error("Error creating task:", error);
-    res.status(500).send("Failed to create task.");
+    console.error("Error creating task for user:", error);
+    res.status(500).send("Failed to create task for the user.");
   }
 });
 
+
 module.exports = { linearRoutes };
+
+
+
+// linearRoutes.get("/get-teams", async (req, res) => {
+//   const { accessToken } = req.query;
+
+//   if (!accessToken) {
+//     return res.status(400).send("Access token is required.");
+//   }
+
+//   try {
+//     // Fetch teams from Linear API
+//     const response = await axios.post(
+//       "https://api.linear.app/graphql",
+//       {
+//         query: `
+//             query {
+//               teams {
+//                 nodes {
+//                   id
+//                   name
+//                 }
+//               }
+//             }
+//           `,
+//       },
+//       {
+//         headers: {
+//           Authorization: `Bearer ${accessToken}`,
+//           "Content-Type": "application/json",
+//         },
+//       }
+//     );
+
+//     // Handle the response
+//     const { data } = response;
+//     console.log(data, "team id Data");
+//     res.send(data.data.teams.nodes);
+//   } catch (error) {
+//     console.error("Error fetching teams:", error);
+//     res.status(500).send("Failed to fetch teams.");
+//   }
+// });
+
+// linearRoutes.post("/create-task", async (req, res) => {
+//   const { accessToken, title, description, teamId } = req.body;
+
+//   if (!accessToken || !title) {
+//     return res.status(400).send("Access token and title are required.");
+//   }
+
+//   try {
+//     const response = await axios.post(
+//       "https://api.linear.app/graphql",
+//       {
+//         query: `
+//             mutation {
+//               issueCreate(input: {
+//                 title: "${title}",
+//                 description: "${description || ""}",
+//                 teamId: "${teamId || ""}"
+//               }) {
+//                 success
+//                 issue {
+//                   id
+//                   title
+//                   description
+//                 }
+//               }
+//             }
+//           `,
+//       },
+//       {
+//         headers: {
+//           Authorization: `Bearer ${accessToken}`,
+//           "Content-Type": "application/json",
+//         },
+//       }
+//     );
+
+//     const { data } = response;
+//     if (data.errors) {
+//       throw new Error(data.errors[0].message);
+//     }
+
+//     res.send(data.data.issueCreate.issue);
+//   } catch (error) {
+//     console.error("Error creating task:", error);
+//     res.status(500).send("Failed to create task.");
+//   }
+// });
