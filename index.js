@@ -254,16 +254,13 @@ app.get("/callback/auth/linear", async (req, res) => {
       }
     );
 
-    const { access_token, refreshToken, expiresIn } = tokenResponse.data;
-    console.log(tokenResponse, "response after authenticate the user");
-    console.log(access_token, "access token coming ");
+    const { access_token, refresh_token, expires_in } = tokenResponse.data;
+    console.log(tokenResponse.data, "response after authenticating the user");
 
-    // Step 4: Fetch user details from Linear API
-    const userResponse = await axios.get("https://api.linear.app/graphql", {
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-      },
-      data: {
+    // Step 4: Fetch user details from Linear API (GraphQL)
+    const userResponse = await axios.post(
+      "https://api.linear.app/graphql",
+      {
         query: `
         query {
           viewer {
@@ -277,15 +274,23 @@ app.get("/callback/auth/linear", async (req, res) => {
           }
         }`,
       },
-    });
-    console.log(userResponse, "user info for user");
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    console.log(userResponse.data, "user info for user");
     const userInfo = userResponse.data.data.viewer;
     const { email, team } = userInfo;
     console.log(userInfo, "user information for email and team");
+
     // Save user info in the database
     const linearUser = new LinearUser({
-      accessToken,
-      refreshToken,
+      accessToken: access_token,
+      refreshToken: refresh_token,
       email,
       teamId: team.id,
       teamName: team.name,
@@ -299,6 +304,7 @@ app.get("/callback/auth/linear", async (req, res) => {
     res.status(500).send("Failed to authenticate user.");
   }
 });
+
 
 app.get("/get-teams", async (req, res) => {
   const { accessToken } = req.query;
