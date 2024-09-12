@@ -3,10 +3,10 @@ const axios = require("axios");
 const querystring = require("querystring");
 const { LinearUser } = require("../modals/LinearUser.modals");
 const linearRoutes = express.Router();
-const dotenv = require("dotenv")
-dotenv.config()
+const dotenv = require("dotenv");
+dotenv.config();
 
-linearRoutes.get("auth/linear", (req, res) => {
+linearRoutes.get("/auth/linear", (req, res) => {
   const authUrl = "https://linear.app/oauth/authorize";
   const params = querystring.stringify({
     client_id: process.env.LINEAR_CLIENT_ID,
@@ -21,7 +21,7 @@ linearRoutes.get("auth/linear", (req, res) => {
 });
 
 // Step 2: Callback URL to capture authorization code
-linearRoutes.get("callback/auth/linear", async (req, res) => {
+linearRoutes.get("/callback/auth/linear", async (req, res) => {
   const { code } = req.query;
   console.log(code, "getting code");
 
@@ -99,7 +99,7 @@ linearRoutes.get("callback/auth/linear", async (req, res) => {
   }
 });
 
-linearRoutes.get("get-teams", async (req, res) => {
+linearRoutes.get("/get-teams", async (req, res) => {
   const { accessToken } = req.query;
 
   if (!accessToken) {
@@ -140,7 +140,7 @@ linearRoutes.get("get-teams", async (req, res) => {
   }
 });
 
-linearRoutes.post("create-task", async (req, res) => {
+linearRoutes.post("/create-task", async (req, res) => {
   const { accessToken, title, description, teamId } = req.body;
 
   if (!accessToken || !title) {

@@ -2,9 +2,9 @@ const express = require("express");
 const axios = require("axios");
 const { SlackUser } = require("../modals/SlackUser.modals");
 const slackRouter = express.Router();
-const dotenv = require("dotenv")
-dotenv.config()
-slackRouter.get("slack/oauth_redirect", async (req, res) => {
+const dotenv = require("dotenv");
+dotenv.config();
+slackRouter.get("/slack/oauth_redirect", async (req, res) => {
   const { code } = req.query;
 
   if (!code) {
@@ -66,7 +66,7 @@ slackRouter.get("slack/oauth_redirect", async (req, res) => {
 });
 
 // Route to send a message to a Slack user
-slackRouter.post("send-message", async (req, res) => {
+slackRouter.post("/send-message", async (req, res) => {
   const { userId, message } = req.body;
 
   // const user = users[userId];
@@ -95,7 +95,7 @@ slackRouter.post("send-message", async (req, res) => {
   }
 });
 
-slackRouter.post("notify-task", async (req, res) => {
+slackRouter.post("/notify-task", async (req, res) => {
   const { title, description, webhookUrl } = req.body;
 
   if (!title || !webhookUrl) {
@@ -116,7 +116,7 @@ slackRouter.post("notify-task", async (req, res) => {
   }
 });
 
-slackRouter.post("task/details/creation", async (req, res) => {
+slackRouter.post("/task/details/creation", async (req, res) => {
   const { email, title, description, access_token } = req.body;
 
   // Validate that all required fields are provided
