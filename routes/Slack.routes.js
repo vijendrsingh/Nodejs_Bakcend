@@ -67,42 +67,47 @@ slackRouter.get("/slack/oauth_redirect", async (req, res) => {
 });
 
 slackRouter.post("/task/details/creation", async (req, res) => {
-  const { email, title, description, access_token } = req.body;
-
-  try {
-    // Find the user by email to get the stored webhook URL
-    // Store the task in the database
-    const newTask = new TaskDetails({
-      title,
-      description,
-      email,
-      access_token,
-    });
-
-    await newTask.save();
-
-    const slackUser = await SlackUser.findOne({ email });
-    // Send Slack notification using the retrieved webhookUrl
-    console.log(slackUser, "slack user info");
-    const webhookUrl = slackUser.webhook_url;
-    console.log(webhookUrl, "webhook url ");
-    await axios.post(webhookUrl, {
-      text: `A new task has been created by Vijendra Chouhan : *${title}* \nDescription: ${
-        description || "No description"
-      }`,
-    });
-
-    // Return success message after both task creation and Slack notification
-    res.status(201).json({
-      message: "Task created successfully, and notification sent to Slack",
-      task: newTask,
-    });
-  } catch (error) {
-    console.error("Error creating task or sending Slack notification:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to create task or send notification to Slack" });
-  }
-});
-
+    const { email, title, description, access_token } = req.body;
+  
+    try {
+      // Store the task in the database
+      const newTask = new TaskDetails({
+        title,
+        description,
+        email,
+        access_token,
+      });
+  
+      await newTask.save();
+  
+      // Find the user by email to get the stored webhook URL
+      const slackUser = await SlackUser.findOne({ email });
+      
+      if (!slackUser) {
+        return res.status(404).json({ message: "Slack user not found" });
+      }
+  
+      const webhookUrl = slackUser.webhook_url;
+  
+      if (!webhookUrl) {
+        return res.status(400).json({ message: "Webhook URL is missing for this user" });
+      }
+  
+      // Send Slack notification using the retrieved webhookUrl
+      await axios.post(webhookUrl, {
+        text: `A new task has been created by Vijendra Chouhan: *${title}* \nDescription: ${
+          description || "No description"
+        }`,
+      });
+  
+      // Return success message after both task creation and Slack notification
+      res.status(201).json({
+        message: "Task created successfully, and notification sent to Slack",
+      });
+    } catch (error) {
+      console.error("Error creating task or sending Slack notification:", error);
+      res.status(500).json({ message: "Failed to create task or send notification to Slack" });
+    }
+  });
+  
 module.exports = { slackRouter };
