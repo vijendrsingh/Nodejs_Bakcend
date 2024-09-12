@@ -254,14 +254,14 @@ app.get("/callback/auth/linear", async (req, res) => {
       }
     );
 
-    const { accessToken, refreshToken, expiresIn } = tokenResponse.data;
+    const { access_token, refreshToken, expiresIn } = tokenResponse.data;
     console.log(tokenResponse, "response after authenticate the user");
-    console.log(accessToken, "access token coming ");
+    console.log(access_token, "access token coming ");
 
     // Step 4: Fetch user details from Linear API
     const userResponse = await axios.get("https://api.linear.app/graphql", {
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${access_token}`,
       },
       data: {
         query: `
