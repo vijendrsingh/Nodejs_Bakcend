@@ -56,7 +56,9 @@ linearRoutes.get("/callback/auth/linear", async (req, res) => {
       accessToken: access_token,
     });
     console.log(client, "client info which is now autheticate ");
-    res.send(`User info stored for ${email}`);
+    const me = await client.viewer;
+    console.log(me, "own user");
+    res.send(`User info stored for}`);
   } catch (error) {
     console.error("Error during OAuth callback:", error);
     res.status(500).send("Failed to authenticate user.");
