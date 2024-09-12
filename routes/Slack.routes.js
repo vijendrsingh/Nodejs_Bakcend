@@ -80,34 +80,58 @@ slackRouter.post("/task/details/creation", async (req, res) => {
   
       await newTask.save();
   
-      // Find the user by email to get the stored webhook URL
+      // Find the user by email to get the stored Slack information
       const slackUser = await SlackUser.findOne({ email });
-      
+  
       if (!slackUser) {
         return res.status(404).json({ message: "Slack user not found" });
       }
   
       const webhookUrl = slackUser.webhook_url;
+      const userSlackId = slackUser.authed_user_id; // Slack user ID
+      const userAccessToken = slackUser.access_token; // User's Slack access token
   
       if (!webhookUrl) {
-        return res.status(400).json({ message: "Webhook URL is missing for this user" });
+        return res
+          .status(400)
+          .json({ message: "Webhook URL is missing for this user" });
       }
   
-      // Send Slack notification using the retrieved webhookUrl
+      // Send Slack notification to a channel using the retrieved webhookUrl
       await axios.post(webhookUrl, {
         text: `A new task has been created by Vijendra Chouhan: *${title}* \nDescription: ${
           description || "No description"
         }`,
       });
   
-      // Return success message after both task creation and Slack notification
+      // Send a personal message to the user via Slack (direct message)
+      await axios.post(
+        "https://slack.com/api/chat.postMessage",
+        {
+          channel: userSlackId, // The user's Slack ID to send a direct message
+          text: `Hey! A new task has been created: *${title}* \nDescription: ${
+            description || "No description"
+          }`,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${userAccessToken}`, // Use the user's personal Slack access token
+          },
+        }
+      );
+  
+      // Return success message after task creation and notifications
       res.status(201).json({
-        message: "Task created successfully, and notification sent to Slack",
+        message:
+          "Task created successfully, notification sent to Slack channel, and personal message sent to the user.",
       });
     } catch (error) {
       console.error("Error creating task or sending Slack notification:", error);
-      res.status(500).json({ message: "Failed to create task or send notification to Slack" });
+      res
+        .status(500)
+        .json({ message: "Failed to create task or send notification to Slack" });
     }
   });
+  
   
 module.exports = { slackRouter };
