@@ -1,11 +1,11 @@
 const mongoose = require("mongoose");
 
 const linearSchema = new mongoose.Schema({
+  linearUserId: { type: String },
   accessToken: { type: String },
-  email: { type: String },
-  teamId: { type: String },
-  teamName: { type: String },
   refreshToken: { type: String },
+  name: { type: String },
+  email: { type: String },
 });
 
 // Create a User model

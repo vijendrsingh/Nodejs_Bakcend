@@ -52,45 +52,27 @@ linearRoutes.get("/callback/auth/linear", async (req, res) => {
     console.log(tokenResponse.data, "response after authenticating the user");
 
     // Step 4: Fetch user details from Linear API (GraphQL)
-    const userResponse = await axios.post(
-      "https://api.linear.app/graphql",
-      {
-        query: `
-          query {
-            viewer {
-              id
-              email
-              name
-              team {
-                id
-                name
-              }
-            }
-          }`,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    console.log(userResponse.data, "user info for user");
-    const userInfo = userResponse.data.data.viewer;
-    const { email, team } = userInfo;
-    console.log(userInfo, "user information for email and team");
-
-    // Save user info in the database
-    const linearUser = new LinearUser({
-      accessToken: access_token,
-      refreshToken: refresh_token,
-      email,
-      teamId: team.id,
-      teamName: team.name,
+    const userResponse = await axios.get("https://api.linear.app/me", {
+      headers: { Authorization: `Bearer ${access_token}` },
     });
-
-    await linearUser.save();
+    console.log(userResponse, "for linear user getting");
+    const linearUser = userResponse.data;
+    console.log(linearUser, "linear user ");
+    // Save user in database
+    let user = await LinearUser.findOne({ linearUserId: linearUser.id });
+    if (!user) {
+      user = new LinearUser({
+        linearUserId: linearUser.id,
+        accessToken: access_token,
+        refreshToken: refresh_token,
+        name: linearUser.name,
+        email: linearUser.email,
+      });
+    } else {
+      user.accessToken = access_token;
+      user.refreshToken = refresh_token;
+    }
+    await user.save();
 
     res.send(`User info stored for ${email}`);
   } catch (error) {
