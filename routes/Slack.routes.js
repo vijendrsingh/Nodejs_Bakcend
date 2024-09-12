@@ -2,7 +2,8 @@ const express = require("express");
 const axios = require("axios");
 const { SlackUser } = require("../modals/SlackUser.modals");
 const slackRouter = express.Router();
-
+const dotenv = require("dotenv")
+dotenv.config()
 slackRouter.get("slack/oauth_redirect", async (req, res) => {
   const { code } = req.query;
 

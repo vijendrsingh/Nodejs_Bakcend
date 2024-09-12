@@ -1,6 +1,5 @@
 const express = require("express");
 const { connectionToDB } = require("./config/db");
-require("dotenv").config();
 const { slackRouter } = require("./routes/Slack.routes");
 const { linearRoutes } = require("./routes/Linear.routes");
 
