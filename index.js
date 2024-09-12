@@ -255,7 +255,7 @@ app.get("/callback/auth/linear", async (req, res) => {
     );
 
     const { accessToken, refreshToken, expiresIn } = tokenResponse.data;
-
+    console.log(tokenResponse, "response after authenticate the user");
     console.log(accessToken, "access token coming ");
 
     // Step 4: Fetch user details from Linear API
