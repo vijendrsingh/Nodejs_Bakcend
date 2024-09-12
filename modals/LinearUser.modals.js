@@ -2,8 +2,7 @@ const mongoose = require("mongoose");
 
 const linearSchema = new mongoose.Schema({
   linearUserId: { type: String },
-  accessToken: { type: String },
-  refreshToken: { type: String },
+  access_token: { type: String },
   name: { type: String },
   email: { type: String },
 });
