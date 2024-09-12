@@ -2,6 +2,7 @@ const express = require("express");
 const dotenv = require("dotenv");
 dotenv.config();
 const clickupRoutes = express.Router();
+const axios = require("axios");
 
 clickupRoutes.get("/clickUp/callback", async (req, res) => {
   const { code } = req.query;
