@@ -6,6 +6,7 @@ const linearRoutes = express.Router();
 const dotenv = require("dotenv");
 dotenv.config();
 const { LinearClient } = require("@linear/sdk");
+const { LinearUserTask } = require("../modals/LinearTask.modals");
 
 linearRoutes.get("/auth/linear", (req, res) => {
   const authUrl = "https://linear.app/oauth/authorize";
@@ -74,6 +75,8 @@ linearRoutes.get("/callback/auth/linear", async (req, res) => {
   }
 });
 
+ // Import the task model
+
 linearRoutes.post("/create/task/linear", async (req, res) => {
   const { title, description, email } = req.body;
 
@@ -98,13 +101,13 @@ linearRoutes.post("/create/task/linear", async (req, res) => {
 
     // Get the user's teamId (assuming they have access to a team)
     const teams = await client.teams();
-    // if (!teams || teams.nodes.length === 0) {
-    //   return res.status(400).send("User has no team available.");
-    // }
-    console.log(teams,"users teams info")
+    if (!teams || teams.nodes.length === 0) {
+      return res.status(400).send("User has no team available.");
+    }
+
     const teamId = teams.nodes[0].id; // You can select the first team or modify this logic
-    console.log(teamId,"team id ")
-    // Create a new task for the user
+
+    // Create a new task for the user on Linear
     const response = await axios.post(
       "https://api.linear.app/graphql",
       {
@@ -134,12 +137,26 @@ linearRoutes.post("/create/task/linear", async (req, res) => {
     );
 
     const { data } = response;
-    console.log(data,"taks creation info")
-    if (data.errors) {
-      throw new Error(data.errors[0].message);
+
+    // Check if task creation on Linear was successful
+    if (!data || !data.data || !data.data.issueCreate.success) {
+      return res.status(500).send("Failed to create task on Linear.");
     }
 
-    res.send(data.data.issueCreate.issue);
+    // Save the task in your MongoDB database using LinearUserTask model
+    const newTask = new LinearUserTask({
+      title: data.data.issueCreate.issue.title,
+      description: data.data.issueCreate.issue.description,
+      email: email, // Store the user email
+    });
+
+    await newTask.save(); // Save task to the database
+
+    // Send a response back with the created task
+    res.send({
+      linearTask: data.data.issueCreate.issue,
+      message: "Task successfully created and saved in the database.",
+    });
   } catch (error) {
     console.error("Error creating task for user:", error);
     res.status(500).send("Failed to create task for the user.");
@@ -150,92 +167,3 @@ linearRoutes.post("/create/task/linear", async (req, res) => {
 module.exports = { linearRoutes };
 
 
-
-// linearRoutes.get("/get-teams", async (req, res) => {
-//   const { accessToken } = req.query;
-
-//   if (!accessToken) {
-//     return res.status(400).send("Access token is required.");
-//   }
-
-//   try {
-//     // Fetch teams from Linear API
-//     const response = await axios.post(
-//       "https://api.linear.app/graphql",
-//       {
-//         query: `
-//             query {
-//               teams {
-//                 nodes {
-//                   id
-//                   name
-//                 }
-//               }
-//             }
-//           `,
-//       },
-//       {
-//         headers: {
-//           Authorization: `Bearer ${accessToken}`,
-//           "Content-Type": "application/json",
-//         },
-//       }
-//     );
-
-//     // Handle the response
-//     const { data } = response;
-//     console.log(data, "team id Data");
-//     res.send(data.data.teams.nodes);
-//   } catch (error) {
-//     console.error("Error fetching teams:", error);
-//     res.status(500).send("Failed to fetch teams.");
-//   }
-// });
-
-// linearRoutes.post("/create-task", async (req, res) => {
-//   const { accessToken, title, description, teamId } = req.body;
-
-//   if (!accessToken || !title) {
-//     return res.status(400).send("Access token and title are required.");
-//   }
-
-//   try {
-//     const response = await axios.post(
-//       "https://api.linear.app/graphql",
-//       {
-//         query: `
-//             mutation {
-//               issueCreate(input: {
-//                 title: "${title}",
-//                 description: "${description || ""}",
-//                 teamId: "${teamId || ""}"
-//               }) {
-//                 success
-//                 issue {
-//                   id
-//                   title
-//                   description
-//                 }
-//               }
-//             }
-//           `,
-//       },
-//       {
-//         headers: {
-//           Authorization: `Bearer ${accessToken}`,
-//           "Content-Type": "application/json",
-//         },
-//       }
-//     );
-
-//     const { data } = response;
-//     if (data.errors) {
-//       throw new Error(data.errors[0].message);
-//     }
-
-//     res.send(data.data.issueCreate.issue);
-//   } catch (error) {
-//     console.error("Error creating task:", error);
-//     res.status(500).send("Failed to create task.");
-//   }
-// });
