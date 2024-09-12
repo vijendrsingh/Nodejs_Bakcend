@@ -3,7 +3,7 @@ const axios = require("axios");
 const { connectionToDB } = require("./config/db");
 require("dotenv").config();
 const querystring = require("querystring");
-const { User } = require("./modals/UserInfo.modals");
+const { LinearUser } = require("./modals/LinearUser.modals");
 const { SlackUser } = require("./modals/SlackUser.modals");
 const TaskDetails = require("./modals/TasksDetails.modals");
 
@@ -229,7 +229,7 @@ app.get("/auth/linear", (req, res) => {
 // Step 2: Callback URL to capture authorization code
 app.get("/callback/auth/linear", async (req, res) => {
   const { code } = req.query;
-  console.log(code, "getting code ");
+  console.log(code, "getting code");
 
   if (!code) {
     return res.status(400).send("Authorization code missing.");
@@ -254,19 +254,46 @@ app.get("/callback/auth/linear", async (req, res) => {
       }
     );
 
-    console.log(tokenResponse.data, "response from the token URL");
-    const {
-      access_token: accessToken,
-      refresh_token: refreshToken,
-      expires_in: expiresIn,
-    } = tokenResponse.data;
+    const { accessToken, refreshToken, expiresIn } = tokenResponse.data;
 
     console.log(accessToken, "access token coming ");
-    const userInfo = new User({
-      accessToken,
+
+    // Step 4: Fetch user details from Linear API
+    const userResponse = await axios.get("https://api.linear.app/graphql", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      data: {
+        query: `
+        query {
+          viewer {
+            id
+            email
+            name
+            team {
+              id
+              name
+            }
+          }
+        }`,
+      },
     });
-    await userInfo.save();
-    res.send(`User info stored for ${accessToken}`);
+    console.log(userResponse, "user info for user");
+    const userInfo = userResponse.data.data.viewer;
+    const { email, team } = userInfo;
+    console.log(userInfo, "user information for email and team");
+    // Save user info in the database
+    const linearUser = new LinearUser({
+      accessToken,
+      refreshToken,
+      email,
+      teamId: team.id,
+      teamName: team.name,
+    });
+
+    await linearUser.save();
+
+    res.send(`User info stored for ${email}`);
   } catch (error) {
     console.error("Error during OAuth callback:", error);
     res.status(500).send("Failed to authenticate user.");
