@@ -5,7 +5,7 @@ const { LinearUser } = require("../modals/LinearUser.modals");
 const linearRoutes = express.Router();
 const dotenv = require("dotenv");
 dotenv.config();
-import { LinearClient } from "@linear/sdk";
+const { LinearClient } = require("@linear/sdk");
 
 linearRoutes.get("/auth/linear", (req, res) => {
   const authUrl = "https://linear.app/oauth/authorize";
