@@ -2,8 +2,7 @@ const express = require("express");
 const { connectionToDB } = require("./config/db");
 const { slackRouter } = require("./routes/Slack.routes");
 const { linearRoutes } = require("./routes/Linear.routes");
-
-
+const { clickupRoutes } = require("./routes/Clickup.routes");
 
 const app = express();
 const port = 3000;
@@ -11,11 +10,10 @@ const port = 3000;
 app.use(express.json());
 app.use("/", slackRouter);
 app.use("/", linearRoutes);
+app.use("/", clickupRoutes);
 app.get("/", async (req, res) => {
   res.send("home page for slack");
 });
-
-
 
 app.listen(port, async () => {
   try {
