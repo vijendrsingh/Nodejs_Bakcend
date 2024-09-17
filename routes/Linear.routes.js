@@ -154,7 +154,7 @@ linearRoutes.post("/create/task/linear", async (req, res) => {
     );
 
     const { data } = response;
-
+    console.log(response, "response from the creation task");
     // Check if task creation on Linear was successful
     if (!data || !data.data || !data.data.issueCreate.success) {
       return res.status(500).send("Failed to create task on Linear.");
