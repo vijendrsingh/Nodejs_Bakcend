@@ -68,6 +68,7 @@ clickupRoutes.get("/auth/callback/clickup", async (req, res) => {
 async function getClickUpListId(accessToken) {
   try {
     // Step 1: Get Teams
+    console.log(accessToken, "access token");
     const teamResponse = await axios.get(
       "https://api.clickup.com/api/v2/team",
       {
@@ -76,7 +77,7 @@ async function getClickUpListId(accessToken) {
         },
       }
     );
-
+    console.log(teamResponse, "team response");
     const teams = teamResponse.data.teams;
     const teamId = teams[0].id; // Assuming you're picking the first team, modify as needed.
 
@@ -89,7 +90,7 @@ async function getClickUpListId(accessToken) {
         },
       }
     );
-
+    console.log(spaceResponse, "space response");
     const spaces = spaceResponse.data.spaces;
     const spaceId = spaces[0].id; // Assuming you're picking the first space, modify as needed.
 
@@ -102,7 +103,7 @@ async function getClickUpListId(accessToken) {
         },
       }
     );
-
+    console.log(listResponse, "list response");
     const lists = listResponse.data.lists;
     const listId = lists[0].id; // Assuming you're picking the first list, modify as needed.
 
