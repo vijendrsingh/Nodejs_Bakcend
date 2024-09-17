@@ -5,7 +5,7 @@ const clickupRoutes = express.Router();
 const axios = require("axios");
 const { ClickUpUser } = require("../modals/ClickUpUser.modal");
 
-clickupRoutes.get("/clickUp/callback", async (req, res) => {
+clickupRoutes.get("/auth/callback/clickup", async (req, res) => {
   const { code } = req.query;
   console.log(req.query, "queries");
 
