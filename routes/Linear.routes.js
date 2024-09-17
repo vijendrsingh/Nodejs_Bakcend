@@ -56,26 +56,43 @@ linearRoutes.get("/callback/auth/linear", async (req, res) => {
     const client = new LinearClient({
       accessToken: access_token,
     });
-    console.log(client, "client info which is now autheticate ");
+    console.log(client, "client info which is now authenticated");
+
     const me = await client.viewer;
 
-    const linearUser = new LinearUser({
-      linearUserId: me.id,
-      access_token: access_token,
-      name: me.name,
-      email: me.email,
-    });
+    // Check if the user already exists in the database
+    let linearUser = await LinearUser.findOne({ linearUserId: me.id });
 
-    await linearUser.save();
-    console.log(linearUser, "users");
-    res.send(`Your are authenticated now you can close this window!`);
+    if (linearUser) {
+      // User exists, update their access token and other details
+      linearUser.access_token = access_token;
+      linearUser.name = me.name;
+      linearUser.email = me.email;
+
+      await linearUser.save(); // Save the updated user details
+
+      console.log(linearUser, "updated user");
+    } else {
+      // User does not exist, create a new user
+      linearUser = new LinearUser({
+        linearUserId: me.id,
+        access_token: access_token,
+        name: me.name,
+        email: me.email,
+      });
+
+      await linearUser.save(); // Save the new user
+      console.log(linearUser, "new user");
+    }
+
+    res.send("You are authenticated. You can close this window now!");
   } catch (error) {
     console.error("Error during OAuth callback:", error);
     res.status(500).send("Failed to authenticate user.");
   }
 });
 
- // Import the task model
+// Import the task model
 
 linearRoutes.post("/create/task/linear", async (req, res) => {
   const { title, description, email } = req.body;
@@ -163,7 +180,4 @@ linearRoutes.post("/create/task/linear", async (req, res) => {
   }
 });
 
-
 module.exports = { linearRoutes };
-
-
