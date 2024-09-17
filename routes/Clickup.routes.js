@@ -21,10 +21,10 @@ clickupRoutes.get("/clickUp/callback", async (req, res) => {
         client_secret: process.env.CLICKUP_CLIENT_SECRET,
       }
     );
+    console.log(tokenResponse, "response of the click up Oauth");
 
     const accessToken = tokenResponse.data.access_token;
     const refreshToken = tokenResponse.data.refresh_token;
-    console.log(tokenResponse, "response of the click up Oauth");
     // Fetch user info
     const userInfoResponse = await axios.get(
       "https://api.clickup.com/api/v2/user",
