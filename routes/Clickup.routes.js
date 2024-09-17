@@ -79,8 +79,9 @@ async function getClickUpListId(accessToken) {
     );
     console.log(teamResponse, "team response");
     const teams = teamResponse.data.teams;
+    console.log(teams, "teams all ");
     const teamId = teams[0].id; // Assuming you're picking the first team, modify as needed.
-
+    console.log(teamId, "team id");
     // Step 2: Get Spaces in Team
     const spaceResponse = await axios.get(
       `https://api.clickup.com/api/v2/team/${teamId}/space`,
@@ -92,8 +93,9 @@ async function getClickUpListId(accessToken) {
     );
     console.log(spaceResponse, "space response");
     const spaces = spaceResponse.data.spaces;
+    console.log(spaces, "spacess all");
     const spaceId = spaces[0].id; // Assuming you're picking the first space, modify as needed.
-
+    console.log(spaceId, "spaces id");
     // Step 3: Get Lists in Space (direct lists, if no folders)
     const listResponse = await axios.get(
       `https://api.clickup.com/api/v2/space/${spaceId}/list`,
@@ -105,6 +107,7 @@ async function getClickUpListId(accessToken) {
     );
     console.log(listResponse, "list response");
     const lists = listResponse.data.lists;
+    console.log(lists, "list details");
     const listId = lists[0].id; // Assuming you're picking the first list, modify as needed.
 
     console.log("List ID:", listId);
