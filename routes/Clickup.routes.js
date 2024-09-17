@@ -4,6 +4,7 @@ dotenv.config();
 const clickupRoutes = express.Router();
 const axios = require("axios");
 const { ClickUpUser } = require("../modals/ClickUpUser.modal");
+const { ClickUpTask } = require("../modals/ClickUpTask.modal");
 
 clickupRoutes.get("/auth/callback/clickup", async (req, res) => {
   const { code } = req.query;
