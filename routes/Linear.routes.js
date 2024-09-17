@@ -97,34 +97,28 @@ linearRoutes.get("/callback/auth/linear", async (req, res) => {
 linearRoutes.post("/create/task/linear", async (req, res) => {
   const { title, description, email } = req.body;
 
-  // Validate the required fields
   if (!title || !email) {
     return res.status(400).send("Title and email are required.");
   }
 
   try {
-    // Find the user in the Linear database using the email
     const linearUser = await LinearUser.findOne({ email });
     if (!linearUser) {
       return res.status(404).send("User not found in Linear database.");
     }
 
     const { access_token } = linearUser;
-
-    // Create a new Linear client for this user
     const client = new LinearClient({
       accessToken: access_token,
     });
 
-    // Get the user's teamId (assuming they have access to a team)
     const teams = await client.teams();
     if (!teams || teams.nodes.length === 0) {
       return res.status(400).send("User has no team available.");
     }
 
-    const teamId = teams.nodes[0].id; // You can select the first team or modify this logic
+    const teamId = teams.nodes[0].id;
 
-    // Create a new task for the user on Linear
     const response = await axios.post(
       "https://api.linear.app/graphql",
       {
@@ -154,24 +148,27 @@ linearRoutes.post("/create/task/linear", async (req, res) => {
     );
 
     const { data } = response;
-    console.log(response, "response from the creation task");
-    // Check if task creation on Linear was successful
     if (!data || !data.data || !data.data.issueCreate.success) {
       return res.status(500).send("Failed to create task on Linear.");
     }
 
-    // Save the task in your MongoDB database using LinearUserTask model
+    const issue = data.data.issueCreate.issue;
+    const issueUrl = `https://linear.app/${linearUser.workspaceSlug}/issue/${issue.id}`;
+    console.log(issueUrl, "issue Url to that perticuluer task ");
+    // Save the task in your MongoDB database
     const newTask = new LinearUserTask({
-      title: data.data.issueCreate.issue.title,
-      description: data.data.issueCreate.issue.description,
-      email: email, // Store the user email
+      title: issue.title,
+      description: issue.description,
+      email: email,
+      url: issueUrl, // Save the URL to the task in your database
     });
 
-    await newTask.save(); // Save task to the database
+    await newTask.save();
 
-    // Send a response back with the created task
+    // Send a response back with the task and URL
     res.send({
-      linearTask: data.data.issueCreate.issue,
+      linearTask: issue,
+      taskUrl: issueUrl,
       message: "Task successfully created and saved in the database.",
     });
   } catch (error) {
