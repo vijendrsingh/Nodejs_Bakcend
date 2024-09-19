@@ -2,8 +2,8 @@ const express = require("express");
 const axios = require("axios");
 const querystring = require("querystring");
 const dotenv = require("dotenv");
-const mongoose = require("mongoose");
 const { JiraUser } = require("../modals/JiraUser.modals");
+const { JiraTask } = require("../modals/JiraTask.modals");
 
 dotenv.config();
 
@@ -46,7 +46,7 @@ jiraRoutes.get("/callback/jira", async (req, res) => {
     const { access_token } = response.data;
 
     // Fetch user info
-    const userInfoResponse = await axios.get(JIRA_USER_INFO_URL, {
+    const userInfoResponse = await axios.get("https://api.atlassian.com/me", {
       headers: {
         Authorization: `Bearer ${access_token}`,
       },
@@ -54,14 +54,14 @@ jiraRoutes.get("/callback/jira", async (req, res) => {
     console.log(userInfoResponse, "user info from the jira");
 
     let jiraUser = await JiraUser.findOne({
-      email: userInfoResponse.data.email,
+      email: userInfoResponse.email,
     });
 
     if (jiraUser) {
       // User exists, update their access token and other details
       jiraUser.access_token = access_token;
-      jiraUser.jiraUserId = userInfoResponse.data.sub;
-      jiraUser.email = userInfoResponse.data.email;
+      jiraUser.jiraUserId = userInfoResponse.account_id;
+      jiraUser.email = userInfoResponse.email;
 
       await jiraUser.save(); // Save the updated user details
 
@@ -69,9 +69,9 @@ jiraRoutes.get("/callback/jira", async (req, res) => {
     } else {
       // User does not exist, create a new user
       jiraUser = new JiraUser({
-        jiraUserId: userInfoResponse.data.sub,
+        jiraUserId: userInfoResponse.account_id,
         access_token: access_token,
-        email: userInfoResponse.data.email,
+        email: userInfoResponse.email,
       });
 
       await jiraUser.save(); // Save the new user
