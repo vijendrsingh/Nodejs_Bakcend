@@ -4,6 +4,7 @@ const { slackRouter } = require("./routes/Slack.routes");
 const { linearRoutes } = require("./routes/Linear.routes");
 const { clickupRoutes } = require("./routes/Clickup.routes");
 const cors = require("cors");
+const jiraRoutes = require("./routes/Jira.routes");
 const app = express();
 const port = 3000;
 
@@ -40,6 +41,7 @@ app.use((req, res, next) => {
 app.use("/", slackRouter);
 app.use("/", linearRoutes);
 app.use("/", clickupRoutes);
+app.use("/",jiraRoutes)
 
 app.get("/", async (req, res) => {
   res.send("home page for slack");
