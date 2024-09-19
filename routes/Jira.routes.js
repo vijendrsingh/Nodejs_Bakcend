@@ -2,17 +2,19 @@ const express = require("express");
 const axios = require("axios");
 const querystring = require("querystring");
 const dotenv = require("dotenv");
+const mongoose = require("mongoose");
+const { JiraUser } = require("../modals/JiraUser.modals");
 
 dotenv.config();
 
 const jiraRoutes = express.Router();
 
-// Environment Variables
 const JIRA_CLIENT_ID = process.env.JIRA_CLIENT_ID;
 const JIRA_CLIENT_SECRET = process.env.JIRA_CLIENT_SECRET;
 const JIRA_REDIRECT_URI = process.env.JIRA_REDIRECT_URI;
 const JIRA_AUTH_URL = "https://auth.atlassian.com/authorize";
 const JIRA_TOKEN_URL = "https://auth.atlassian.com/oauth/token";
+const JIRA_USER_INFO_URL = "https://api.atlassian.com/oauth/token/validate"; // Example URL for user info
 
 // Authorization Route
 jiraRoutes.get("/auth/jira", (req, res) => {
@@ -23,7 +25,7 @@ jiraRoutes.get("/auth/jira", (req, res) => {
 // Callback Route
 jiraRoutes.get("/callback/jira", async (req, res) => {
   const { code } = req.query;
-  console.log(code, "I am getting the code");
+  console.log(code, "I m getting the code");
   try {
     const response = await axios.post(
       JIRA_TOKEN_URL,
@@ -40,14 +42,122 @@ jiraRoutes.get("/callback/jira", async (req, res) => {
         },
       }
     );
-    console.log(response, "response after authentication to user to jira");
-    const { access_token, refresh_token } = response.data;
-    // You can store these tokens in a session or a database for later use
+    console.log(response, "getting from the auth");
+    const { access_token } = response.data;
 
-    res.json({ access_token, refresh_token });
+    // Fetch user info
+    const userInfoResponse = await axios.get(JIRA_USER_INFO_URL, {
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+      },
+    });
+    console.log(userInfoResponse, "user info from the jira");
+
+    let jiraUser = await JiraUser.findOne({
+      email: userInfoResponse.data.email,
+    });
+
+    if (jiraUser) {
+      // User exists, update their access token and other details
+      jiraUser.access_token = access_token;
+      jiraUser.jiraUserId = userInfoResponse.data.sub;
+      jiraUser.email = userInfoResponse.data.email;
+
+      await jiraUser.save(); // Save the updated user details
+
+      console.log(jiraUser, "updated user");
+    } else {
+      // User does not exist, create a new user
+      jiraUser = new JiraUser({
+        jiraUserId: userInfoResponse.data.sub,
+        access_token: access_token,
+        email: userInfoResponse.data.email,
+      });
+
+      await jiraUser.save(); // Save the new user
+      console.log(jiraUser, "new user");
+    }
+    res.json({ message: "Authentication successful", userInfo });
   } catch (error) {
-    console.error("Error fetching access token:", error);
+    console.error("Error fetching access token or user info:", error);
     res.status(500).send("Authentication failed");
+  }
+});
+
+// Route to create a Jira task
+jiraRoutes.post("/create-task/jira", async (req, res) => {
+  const { email, summary, description } = req.body;
+
+  try {
+    // Step 1: Fetch the Jira user from the database
+    const user = await JiraUser.findOne({ email });
+    if (!user) {
+      return res.status(400).send("User not found");
+    }
+
+    // Step 2: Fetch available Jira projects for the authenticated user
+    const projectsResponse = await axios.get(
+      "https://your-domain.atlassian.net/rest/api/3/project",
+      {
+        headers: {
+          Authorization: `Bearer ${user.access_token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    console.log(projectsResponse, "project details response");
+
+    const projects = projectsResponse.data;
+    if (!projects || projects.length === 0) {
+      return res.status(400).send("No projects found for the user");
+    }
+
+    // Step 3: Select a project key (e.g., the first project)
+    const projectKey = projects[0].key; // You can change logic to select a project dynamically
+    console.log(`Using project key: ${projectKey}`);
+
+    // Step 4: Create a Jira task in the selected project
+    const createTaskResponse = await axios.post(
+      "https://your-domain.atlassian.net/rest/api/3/issue",
+      {
+        fields: {
+          project: {
+            key: projectKey, // Use the fetched project key
+          },
+          summary,
+          description,
+          issuetype: {
+            name: "Task", // This can be changed to other issue types
+          },
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${user.access_token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    console.log(createTaskResponse, "creating task response");
+    const { key: taskId } = createTaskResponse.data;
+
+    // Step 5: Save task info to the database
+    await JiraTask.updateOne(
+      { taskId },
+      {
+        email,
+        taskId,
+        summary,
+        description,
+      },
+      { upsert: true }
+    );
+
+    // Step 6: Respond with the task creation details
+    res.json(createTaskResponse.data);
+  } catch (error) {
+    console.error("Error creating Jira task:", error);
+    res.status(500).send("Failed to create task");
   }
 });
 
