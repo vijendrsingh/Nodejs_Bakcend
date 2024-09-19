@@ -54,14 +54,14 @@ jiraRoutes.get("/callback/jira", async (req, res) => {
     console.log(userInfoResponse, "user info from the jira");
 
     let jiraUser = await JiraUser.findOne({
-      email: userInfoResponse.email,
+      email: userInfoResponse.data.email,
     });
 
     if (jiraUser) {
       // User exists, update their access token and other details
       jiraUser.access_token = access_token;
-      jiraUser.jiraUserId = userInfoResponse.account_id;
-      jiraUser.email = userInfoResponse.email;
+      jiraUser.jiraUserId = userInfoResponse.data.account_id;
+      jiraUser.email = userInfoResponse.data.email;
 
       await jiraUser.save(); // Save the updated user details
 
@@ -69,15 +69,15 @@ jiraRoutes.get("/callback/jira", async (req, res) => {
     } else {
       // User does not exist, create a new user
       jiraUser = new JiraUser({
-        jiraUserId: userInfoResponse.account_id,
+        jiraUserId: userInfoResponse.data.account_id,
         access_token: access_token,
-        email: userInfoResponse.email,
+        email: userInfoResponse.data.email,
       });
 
       await jiraUser.save(); // Save the new user
       console.log(jiraUser, "new user");
     }
-    res.json({ message: "Authentication successful", userInfo });
+    res.json({ message: "Authentication successful now you can close the winodw now!", });
   } catch (error) {
     console.error("Error fetching access token or user info:", error);
     res.status(500).send("Authentication failed");
