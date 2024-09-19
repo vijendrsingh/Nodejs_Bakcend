@@ -19,8 +19,12 @@ app.use(
       "http://localhost:5173",
       "http://localhost:5174",
     ],
+    methods: "GET,POST,PUT,DELETE,OPTIONS", // Allow necessary methods
+    allowedHeaders: "Content-Type,Authorization", // Add any headers you need
+    credentials: true, // Enable this if you're using cookies for authentication
   })
 );
+
 app.use("/", slackRouter);
 app.use("/", linearRoutes);
 app.use("/", clickupRoutes);
