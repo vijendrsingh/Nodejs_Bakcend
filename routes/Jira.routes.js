@@ -21,7 +21,7 @@ jiraRoutes.get("/auth/jira", (req, res) => {
 });
 
 // Callback Route
-jiraRoutes.get("/auth/callback", async (req, res) => {
+jiraRoutes.get("/callback/jira", async (req, res) => {
   const { code } = req.query;
   console.log(code, "I am getting the code");
   try {
