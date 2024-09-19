@@ -97,7 +97,7 @@ jiraRoutes.post("/create-task/jira", async (req, res) => {
 
     // Step 2: Fetch available Jira projects for the authenticated user
     const projectsResponse = await axios.get(
-      "https://your-domain.atlassian.net/rest/api/3/project",
+      "https://cleankoding-team-r3s9eq79.atlassian.net/rest/api/3/project",
       {
         headers: {
           Authorization: `Bearer ${user.access_token}`,
@@ -118,7 +118,7 @@ jiraRoutes.post("/create-task/jira", async (req, res) => {
 
     // Step 4: Create a Jira task in the selected project
     const createTaskResponse = await axios.post(
-      "https://your-domain.atlassian.net/rest/api/3/issue",
+      "https://cleankoding-team-r3s9eq79.atlassian.net/rest/api/3/issue",
       {
         fields: {
           project: {
