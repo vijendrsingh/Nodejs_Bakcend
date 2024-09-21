@@ -21,30 +21,18 @@ app.use(
       "https://extension.getaligned.work",
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Specify methods
-    allowedHeaders: ["Content-Type", "Authorization"], // Specify allowed headers
+    allowedHeaders: ["*"], 
     credentials: true, // Allow cookies and credentials if required
   })
 );
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", req.headers.origin || "*"); // Echo origin or use wildcard '*'
-  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.header("Access-Control-Allow-Credentials", "true");
-
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200); // Respond to preflight
-  }
-
-  next();
-});
 
 app.use("/", slackRouter);
 app.use("/", linearRoutes);
 app.use("/", clickupRoutes);
-app.use("/",jiraRoutes)
+app.use("/", jiraRoutes);
 
 app.get("/", async (req, res) => {
-  res.send("home page for slack");
+  res.send("Home-page");
 });
 
 app.listen(port, async () => {

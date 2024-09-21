@@ -68,8 +68,6 @@ clickupRoutes.get("/auth/callback/clickup", async (req, res) => {
 });
 async function getClickUpListId(accessToken) {
   try {
-    // Step 1: Get Teams
-    console.log(accessToken, "access token");
     const teamResponse = await axios.get(
       "https://api.clickup.com/api/v2/team",
       {
@@ -78,13 +76,11 @@ async function getClickUpListId(accessToken) {
         },
       }
     );
-    console.log(teamResponse, "team response");
+    console.log(teamResponse, "team getting ");
     const teams = teamResponse.data.teams;
-    console.log(teams, "teams all ");
-    const teamId = teams[0].id; // Assuming you're picking the first team, modify as needed.
-    console.log(teamId, "team id");
+    const teamId = teams[0].id; // Modify as needed
+    console.log(teamId, "team id ");
 
-    // Step 2: Get Spaces in Team
     const spaceResponse = await axios.get(
       `https://api.clickup.com/api/v2/team/${teamId}/space`,
       {
@@ -95,11 +91,9 @@ async function getClickUpListId(accessToken) {
     );
     console.log(spaceResponse, "space response");
     const spaces = spaceResponse.data.spaces;
-    console.log(spaces, "spaces all");
-    const spaceId = spaces[0].id; // Assuming you're picking the first space, modify as needed.
+    const spaceId = spaces[0].id; // Modify as needed
     console.log(spaceId, "space id");
 
-    // Step 3: Get Folders in Space
     const folderResponse = await axios.get(
       `https://api.clickup.com/api/v2/space/${spaceId}/folder`,
       {
@@ -112,11 +106,8 @@ async function getClickUpListId(accessToken) {
     const folders = folderResponse.data.folders;
 
     let listId;
-
     if (folders.length > 0) {
-      // Step 4: Get Lists in the first folder (assuming first folder)
-      const folderId = folders[0].id; // Modify if needed
-      console.log(folderId, "folder id");
+      const folderId = folders[0].id; // Modify as needed
 
       const listResponse = await axios.get(
         `https://api.clickup.com/api/v2/folder/${folderId}/list`,
@@ -126,22 +117,21 @@ async function getClickUpListId(accessToken) {
           },
         }
       );
-      console.log(listResponse, "list response from folder");
       const lists = listResponse.data.lists;
-      console.log(lists, "list details from folder");
-      listId = lists[0].id;
-      console.log(listId, "listId"); // Assuming first list, modify as needed.
+      console.log(listResponse, "list response");
+      listId = lists[0].id; // Modify as needed
     }
 
-    console.log("List ID:", listId);
-    return listId;
+    console.log(listId, teamId, "list id");
+    return { listId, teamId }; // Return both listId and teamId
   } catch (error) {
     console.error("Error fetching ClickUp List ID:", error);
+    return null; // Optionally return null on error
   }
 }
 
 clickupRoutes.post("/create/task/clickup", async (req, res) => {
-  const { title, description, email } = req.body;
+  const { title, description, email, assignees, priority, due_date } = req.body;
 
   // Validate request
   if (!title || !email) {
@@ -149,23 +139,35 @@ clickupRoutes.post("/create/task/clickup", async (req, res) => {
   }
 
   try {
-    // Find the authenticated ClickUp user
     const clickUpUser = await ClickUpUser.findOne({ email });
     if (!clickUpUser) {
       return res.status(404).send("User not found in ClickUp database.");
     }
 
     const { accessToken } = clickUpUser;
+    const { listId, teamId } = await getClickUpListId(accessToken);
 
-    // Get the listId (from the previous step where we fetched the list)
-    const listId = await getClickUpListId(accessToken); // Assuming you already have this function
-    console.log(listId, "list id of clickup list");
     // Create the task in ClickUp
     const taskResponse = await axios.post(
-      `https://api.clickup.com/api/v2/list/${listId}/task`,
+      `https://api.clickup.com/api/v2/list/${listId}/task?custom_task_ids=true&team_id=${teamId}`, // Include query parameters as needed
       {
         name: title,
-        description: description || "", // optional description
+        description: description || "", // optional
+        assignees: assignees || [], // array of assignee IDs
+        archived: false,
+        tags: [], // Optional tags
+        status: "Open", // Default status
+        priority: priority || null, // Optional priority
+        due_date: due_date || null, // Optional due date
+        due_date_time: false,
+        start_date: null, // Optional start date
+        start_date_time: false,
+        points: null, // Optional points
+        notify_all: true, // Notify all users
+        parent: null, // If creating a subtask
+        links_to: null, // Linked tasks
+        check_required_custom_fields: true, // Enforce required custom fields
+        custom_fields: [], // Array of custom fields if needed
       },
       {
         headers: {
@@ -174,21 +176,20 @@ clickupRoutes.post("/create/task/clickup", async (req, res) => {
         },
       }
     );
-    console.log(taskResponse, "task creation response");
+
     const taskData = taskResponse.data;
 
     // Store the task details in your backend (MongoDB)
     const newTask = new ClickUpTask({
-      taskId: taskData.id, // Task ID from ClickUp
-      title: taskData.name, // Title of the task
-      description: taskData.description, // Description of the task
-      email: email, // User's email who created the task
+      taskId: taskData.id,
+      name: taskData.name,
+      description: taskData.description,
+      email: email,
       taskUrl: `https://app.clickup.com/t/${taskData.id}`,
     });
 
-    await newTask.save(); // Save the task in the database
+    await newTask.save();
 
-    // Send the task and task URL back to the frontend
     res.send({
       task: newTask,
       taskUrl: `https://app.clickup.com/t/${taskData.id}`,

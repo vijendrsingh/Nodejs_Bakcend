@@ -15,10 +15,10 @@ const JIRA_REDIRECT_URI = process.env.JIRA_REDIRECT_URI;
 const JIRA_AUTH_URL = "https://auth.atlassian.com/authorize";
 const JIRA_TOKEN_URL = "https://auth.atlassian.com/oauth/token";
 const JIRA_USER_INFO_URL = "https://api.atlassian.com/oauth/token/validate"; // Example URL for user info
-
+//auth.atlassian.com/authorize?audience=api.atlassian.com&client_id=Cs8tr5nDtynEROb6WORPQ2PTaS0cexxK&scope=read%3Ajira-work%20read%3Ajira-user%20write%3Ajira-work%20manage%3Ajira-webhook&redirect_uri=https%3A%2F%2Fnodejs-bakcend.onrender.com%2Fcallback%2Fjira&state=${YOUR_USER_BOUND_VALUE}&response_type=code&prompt=consent
 // Authorization Route
-jiraRoutes.get("/auth/jira", (req, res) => {
-  const authUrl = `${JIRA_AUTH_URL}?audience=api.atlassian.com&client_id=${JIRA_CLIENT_ID}&scope=read%3Ame&redirect_uri=${JIRA_REDIRECT_URI}&response_type=code&prompt=consent`;
+https: jiraRoutes.get("/auth/jira", (req, res) => {
+  const authUrl = `${JIRA_AUTH_URL}?audience=api.atlassian.com&client_id=${JIRA_CLIENT_ID}&scope=read%3Ajira-work%20read%3Ajira-user%20write%3Ajira-work%20manage%3Ajira-webhook&redirect_uri=https%3A%2F%2Fnodejs-bakcend.onrender.com%2Fcallback%2Fjira&response_type=code&prompt=consent`;
   res.redirect(authUrl);
 });
 
@@ -44,7 +44,7 @@ jiraRoutes.get("/callback/jira", async (req, res) => {
     );
     console.log(response, "getting from the auth");
     const { access_token } = response.data;
-
+    console.log("Access token obtained: ", access_token);
     // Fetch user info
     const userInfoResponse = await axios.get("https://api.atlassian.com/me", {
       headers: {
@@ -77,7 +77,9 @@ jiraRoutes.get("/callback/jira", async (req, res) => {
       await jiraUser.save(); // Save the new user
       console.log(jiraUser, "new user");
     }
-    res.json({ message: "Authentication successful now you can close the winodw now!", });
+    res.json({
+      message: "Authentication successful now you can close the winodw now!",
+    });
   } catch (error) {
     console.error("Error fetching access token or user info:", error);
     res.status(500).send("Authentication failed");

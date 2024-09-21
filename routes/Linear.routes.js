@@ -177,4 +177,64 @@ linearRoutes.post("/create/task/linear", async (req, res) => {
   }
 });
 
+
+
+//remove the user linear authentication
+linearRoutes.post("/remove/auth/linear", async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).send("Email is required to remove the integration.");
+  }
+
+  try {
+    // Find the user in the database
+    const linearUser = await LinearUser.findOne({ email });
+    if (!linearUser) {
+      return res.status(404).send("User not found.");
+    }
+
+    // Remove or clear out their Linear access token (and any other details)
+    linearUser.access_token = null; 
+    await linearUser.save(); // Save changes in the database
+
+    res.send({
+      message: "Linear integration removed successfully.",
+    });
+  } catch (error) {
+    console.error("Error removing Linear integration:", error);
+    res.status(500).send("Failed to remove Linear integration.");
+  }
+});
+
+
+// Route to return user information (e.g., Linear access token, name, etc.)
+linearRoutes.get("/linear/user-info", async (req, res) => {
+  const { email } = req.query;
+console.log(email,"email from the query")
+  if (!email) {
+    return res.status(400).send("Email is required to fetch user info.");
+  }
+
+  try {
+    // Find the user in the database
+    const linearUser = await LinearUser.findOne({ email });
+
+    if (!linearUser) {
+      return res.status(404).send("User not found.");
+    }
+
+    // Return user info (be mindful of what sensitive data you return)
+    res.json({
+      email: linearUser.email,
+      name: linearUser.name,
+      access_token: linearUser.access_token,
+    });
+  } catch (error) {
+    console.error("Error fetching user info:", error);
+    res.status(500).send("Failed to fetch user info.");
+  }
+});
+
+
 module.exports = { linearRoutes };
