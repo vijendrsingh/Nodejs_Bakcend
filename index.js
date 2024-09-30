@@ -20,8 +20,10 @@ app.use(
       "https://api.getaligned.work",
       "https://extension.getaligned.work",
     ],
+    
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Specify methods
     allowedHeaders: ["*"], 
+
     credentials: true, // Allow cookies and credentials if required
   })
 );

@@ -130,6 +130,9 @@ async function getClickUpListId(accessToken) {
   }
 }
 
+
+
+
 clickupRoutes.post("/create/task/clickup", async (req, res) => {
   const { title, description, email, assignees, priority, due_date } = req.body;
 
@@ -138,6 +141,8 @@ clickupRoutes.post("/create/task/clickup", async (req, res) => {
     return res.status(400).send("Title and email are required.");
   }
 
+
+  
   try {
     const clickUpUser = await ClickUpUser.findOne({ email });
     if (!clickUpUser) {

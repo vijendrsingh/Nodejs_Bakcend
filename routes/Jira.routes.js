@@ -17,8 +17,8 @@ const JIRA_TOKEN_URL = "https://auth.atlassian.com/oauth/token";
 const JIRA_USER_INFO_URL = "https://api.atlassian.com/oauth/token/validate"; // Example URL for user info
 //auth.atlassian.com/authorize?audience=api.atlassian.com&client_id=Cs8tr5nDtynEROb6WORPQ2PTaS0cexxK&scope=read%3Ajira-work%20read%3Ajira-user%20write%3Ajira-work%20manage%3Ajira-webhook&redirect_uri=https%3A%2F%2Fnodejs-bakcend.onrender.com%2Fcallback%2Fjira&state=${YOUR_USER_BOUND_VALUE}&response_type=code&prompt=consent
 // Authorization Route
-https: jiraRoutes.get("/auth/jira", (req, res) => {
-  const authUrl = `${JIRA_AUTH_URL}?audience=api.atlassian.com&client_id=${JIRA_CLIENT_ID}&scope=read%3Ajira-work%20read%3Ajira-user%20write%3Ajira-work%20manage%3Ajira-webhook&redirect_uri=https%3A%2F%2Fnodejs-bakcend.onrender.com%2Fcallback%2Fjira&response_type=code&prompt=consent`;
+ jiraRoutes.get("/auth/jira", (req, res) => {
+  const authUrl = `${JIRA_AUTH_URL}?audience=api.atlassian.com&client_id=${JIRA_CLIENT_ID}&scope=read%3Ajira-work%20read%3Ajira-user%20write%3Ajira-work%20manage%3Ajira-webhook&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback%2Fjira&response_type=code&prompt=consent`;
   res.redirect(authUrl);
 });
 
