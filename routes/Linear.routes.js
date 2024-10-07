@@ -62,15 +62,15 @@ linearRoutes.get("/callback/auth/linear", async (req, res) => {
 
     // Check if the user already exists in the database
     let linearUser = await LinearUser.findOne({ linearUserId: me.id });
-
+    const integrations = [{ integrationName: "Linear", integrationDetails: "User connected to Linear" }];
     if (linearUser) {
       // User exists, update their access token and other details
       linearUser.access_token = access_token;
       linearUser.name = me.name;
       linearUser.email = me.email;
-
+      linearUser.integrations = integrations
       await linearUser.save(); // Save the updated user details
-
+      
       console.log(linearUser, "updated user");
     } else {
       // User does not exist, create a new user
@@ -79,6 +79,7 @@ linearRoutes.get("/callback/auth/linear", async (req, res) => {
         access_token: access_token,
         name: me.name,
         email: me.email,
+        integrations : integrations
       });
 
       await linearUser.save(); // Save the new user
@@ -196,6 +197,7 @@ linearRoutes.post("/remove/auth/linear", async (req, res) => {
 
     // Remove or clear out their Linear access token (and any other details)
     linearUser.access_token = null; 
+    linearUser.integrations = linearUser.integrations.filter(integration => integration.integrationName !== "Linear");
     await linearUser.save(); // Save changes in the database
 
     res.send({
@@ -229,6 +231,7 @@ console.log(email,"email from the query")
       email: linearUser.email,
       name: linearUser.name,
       access_token: linearUser.access_token,
+      integrations: linearUser.integrations
     });
   } catch (error) {
     console.error("Error fetching user info:", error);

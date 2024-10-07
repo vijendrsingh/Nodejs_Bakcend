@@ -41,12 +41,13 @@ clickupRoutes.get("/auth/callback/clickup", async (req, res) => {
 
     // Check if the user already exists
     let clickUpUser = await ClickUpUser.findOne({ email });
-
+    const integrations = [{ integrationName: "Clickup", integrationDetails: "User connected to Clickup" }];
     if (clickUpUser) {
       // Update existing user details if they exist
       clickUpUser.accessToken = accessToken;
       clickUpUser.refreshToken = refreshToken;
       clickUpUser.userName = userInfo.username;
+      clickUpUser.integrations = integrations
       await clickUpUser.save();
     } else {
       // Create a new user
@@ -56,6 +57,7 @@ clickupRoutes.get("/auth/callback/clickup", async (req, res) => {
         accessToken: accessToken,
         refreshToken: refreshToken,
         userName: userInfo.username,
+        integrations : integrations
       });
       await clickUpUser.save();
     }
@@ -66,6 +68,8 @@ clickupRoutes.get("/auth/callback/clickup", async (req, res) => {
     res.status(500).send("Error fetching token or user info");
   }
 });
+
+
 async function getClickUpListId(accessToken) {
   try {
     const teamResponse = await axios.get(
@@ -203,6 +207,66 @@ clickupRoutes.post("/create/task/clickup", async (req, res) => {
   } catch (error) {
     console.error("Error creating task or saving in the backend:", error);
     res.status(500).send("Failed to create task or save task details.");
+  }
+});
+
+
+
+clickupRoutes.post("/remove/auth/clickup", async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).send("Email is required to remove the integration.");
+  }
+
+  try {
+    // Find the user in the database
+    const clickupUser = await ClickUpUser.findOne({ email });
+    if (!clickupUser) {
+      return res.status(404).send("User not found.");
+    }
+
+    // Remove or clear out their Linear access token (and any other details)
+    clickupUser.accessToken = null; 
+    clickupUser.integrations = clickupUser.integrations.filter(integration => integration.integrationName !== "Clickup");
+    await clickupUser.save(); // Save changes in the database
+
+    res.send({
+      message: "Clickup integration removed successfully.",
+    });
+  } catch (error) {
+    console.error("Error removing Linear integration:", error);
+    res.status(500).send("Failed to remove Linear integration.");
+  }
+});
+
+
+// Route to return user information (e.g., Linear access token, name, etc.)
+clickupRoutes.get("/clickup/user-info", async (req, res) => {
+  const { email } = req.query;
+console.log(email,"email from the query")
+  if (!email) {
+    return res.status(400).send("Email is required to fetch user info.");
+  }
+
+  try {
+    // Find the user in the database
+    const clickupUser = await ClickUpUser.findOne({ email });
+
+    if (!clickupUser) {
+      return res.status(404).send("User not found.");
+    }
+
+    // Return user info (be mindful of what sensitive data you return)
+    res.json({
+      email: clickupUser.email,
+      name: clickupUser.name,
+      accessToken: clickupUser.accessToken,
+      integrations: clickupUser.integrations
+    });
+  } catch (error) {
+    console.error("Error fetching user info:", error);
+    res.status(500).send("Failed to fetch user info.");
   }
 });
 
