@@ -20,15 +20,13 @@ app.use(
       "https://api.getaligned.work",
       "https://extension.getaligned.work",
     ],
-    
+
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Specify methods
-    allowedHeaders: ["*"], 
+    allowedHeaders: ["*"],
 
     credentials: true, // Allow cookies and credentials if required
   })
 );
-
-
 
 app.use("/", slackRouter);
 app.use("/", linearRoutes);
@@ -36,7 +34,7 @@ app.use("/", clickupRoutes);
 app.use("/", jiraRoutes);
 
 app.get("/", async (req, res) => {
-  res.send("Home-page");
+  res.send("Home-page-for-integretions");
 });
 
 app.listen(port, async () => {
