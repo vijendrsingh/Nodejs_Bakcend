@@ -240,4 +240,36 @@ console.log(email,"email from the query")
 });
 
 
+linearRoutes.get("/get/linear/tasks", async (req, res) => {
+  const { email } = req.query;
+
+  if (!email) {
+    return res.status(400).send("Email is required.");
+  }
+
+  try {
+    // Find all tasks for this user
+    const userTasks = await LinearUserTask.find({ email });
+
+    if (!userTasks || userTasks.length === 0) {
+      return res.status(404).send("No tasks found for this user.");
+    }
+
+    // Return both task details and URL
+    const tasksWithUrls = userTasks.map((task) => ({
+      title: task.title,      // Include task title or other identifiers
+      url: task.url,          // The corresponding URL
+      description: task.description, // Optionally include description
+      // Add any other fields if necessary (e.g., task ID)
+    }));
+
+    res.json({ tasks: tasksWithUrls });
+  } catch (error) {
+    console.error("Error fetching tasks for user:", error);
+    res.status(500).send("Failed to fetch tasks for user.");
+  }
+});
+
+
+
 module.exports = { linearRoutes };
