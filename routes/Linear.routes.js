@@ -62,15 +62,20 @@ linearRoutes.get("/callback/auth/linear", async (req, res) => {
 
     // Check if the user already exists in the database
     let linearUser = await LinearUser.findOne({ linearUserId: me.id });
-    const integrations = [{ integrationName: "Linear", integrationDetails: "User connected to Linear" }];
+    const integrations = [
+      {
+        integrationName: "Linear",
+        integrationDetails: "User connected to Linear",
+      },
+    ];
     if (linearUser) {
       // User exists, update their access token and other details
       linearUser.access_token = access_token;
       linearUser.name = me.name;
       linearUser.email = me.email;
-      linearUser.integrations = integrations
+      linearUser.integrations = integrations;
       await linearUser.save(); // Save the updated user details
-      
+
       console.log(linearUser, "updated user");
     } else {
       // User does not exist, create a new user
@@ -79,7 +84,7 @@ linearRoutes.get("/callback/auth/linear", async (req, res) => {
         access_token: access_token,
         name: me.name,
         email: me.email,
-        integrations : integrations
+        integrations: integrations,
       });
 
       await linearUser.save(); // Save the new user
@@ -119,7 +124,13 @@ linearRoutes.post("/create/task/linear", async (req, res) => {
     }
 
     const teamId = teams.nodes[0].id;
-
+    const org = await teams.nodes[0].organization;
+    console.log(await teams.nodes[0], "teams details when I create task ");
+    const keyN = await teams.nodes[0].key;
+    const issuesCo = await teams.nodes[0].issueCount;
+    console.log(issuesCo, "issues count");
+    const workspaceSlug = org.urlKey;
+    console.log(org, "oraganizations");
     const response = await axios.post(
       "https://api.linear.app/graphql",
       {
@@ -153,8 +164,17 @@ linearRoutes.post("/create/task/linear", async (req, res) => {
       return res.status(500).send("Failed to create task on Linear.");
     }
 
+    // const workspaceSlug = organization.urlKey;
+    console.log(await client.teams(), "integration url key");
+
     const issue = data.data.issueCreate.issue;
-    const issueUrl = `https://linear.app/${linearUser.workspaceSlug}/issue/${issue.id}`;
+    console.log(issue.number, "issue created ");
+    const issueId = issue.id; // The issue's unique ID
+    // Fetch issue details separately to get the issue number
+    const issueDetails = await client.issue(issueId);
+    const issueNumber = issueDetails.number;
+    console.log(issueNumber,"issues number")
+    const issueUrl = `https://linear.app/issue/${keyN}-${issueNumber}/${issue.id}`;
     console.log(issueUrl, "issue Url to that perticuluer task ");
     // Save the task in your MongoDB database
     const newTask = new LinearUserTask({
@@ -178,8 +198,6 @@ linearRoutes.post("/create/task/linear", async (req, res) => {
   }
 });
 
-
-
 //remove the user linear authentication
 linearRoutes.post("/remove/auth/linear", async (req, res) => {
   const { email } = req.body;
@@ -196,8 +214,10 @@ linearRoutes.post("/remove/auth/linear", async (req, res) => {
     }
 
     // Remove or clear out their Linear access token (and any other details)
-    linearUser.access_token = null; 
-    linearUser.integrations = linearUser.integrations.filter(integration => integration.integrationName !== "Linear");
+    linearUser.access_token = null;
+    linearUser.integrations = linearUser.integrations.filter(
+      (integration) => integration.integrationName !== "Linear"
+    );
     await linearUser.save(); // Save changes in the database
 
     res.send({
@@ -209,11 +229,10 @@ linearRoutes.post("/remove/auth/linear", async (req, res) => {
   }
 });
 
-
 // Route to return user information (e.g., Linear access token, name, etc.)
 linearRoutes.get("/linear/user-info", async (req, res) => {
   const { email } = req.query;
-console.log(email,"email from the query")
+  console.log(email, "email from the query");
   if (!email) {
     return res.status(400).send("Email is required to fetch user info.");
   }
@@ -231,14 +250,13 @@ console.log(email,"email from the query")
       email: linearUser.email,
       name: linearUser.name,
       access_token: linearUser.access_token,
-      integrations: linearUser.integrations
+      integrations: linearUser.integrations,
     });
   } catch (error) {
     console.error("Error fetching user info:", error);
     res.status(500).send("Failed to fetch user info.");
   }
 });
-
 
 linearRoutes.get("/get/linear/tasks", async (req, res) => {
   const { email } = req.query;
@@ -257,8 +275,8 @@ linearRoutes.get("/get/linear/tasks", async (req, res) => {
 
     // Return both task details and URL
     const tasksWithUrls = userTasks.map((task) => ({
-      title: task.title,      // Include task title or other identifiers
-      url: task.url,          // The corresponding URL
+      title: task.title, // Include task title or other identifiers
+      url: task.url, // The corresponding URL
       description: task.description, // Optionally include description
       // Add any other fields if necessary (e.g., task ID)
     }));
@@ -269,7 +287,5 @@ linearRoutes.get("/get/linear/tasks", async (req, res) => {
     res.status(500).send("Failed to fetch tasks for user.");
   }
 });
-
-
 
 module.exports = { linearRoutes };

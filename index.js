@@ -34,7 +34,7 @@ app.use("/", clickupRoutes);
 app.use("/", jiraRoutes);
 
 app.get("/", async (req, res) => {
-  res.send("Home-page-for-integretions-new");
+  res.send("Home-page-for-integretions");
 });
 
 app.listen(port, async () => {
